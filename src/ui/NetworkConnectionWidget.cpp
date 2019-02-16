@@ -22,6 +22,8 @@ void NetworkConnectionWidget::setMode(const UiMode eUiMode)
             break;
 
         case NetworkConnectionWidget::CONNECTING:
+            lineEditServerAddressIpV4->setEnabled(false);
+            lineEditServerPort->setEnabled(false);
             buttonConnectToServer->setChecked(true);
             buttonConnectToServer->setText(tr("Cancel"));
             break;
@@ -40,7 +42,7 @@ void NetworkConnectionWidget::setMode(const UiMode eUiMode)
             buttonConnectToServer->setText(tr("Disconnect"));
             break;
 
-        default:
+        case COUNT_UI_MODE:
             break;
     }
 }
@@ -113,6 +115,8 @@ void NetworkConnectionWidget::setupSignalsAndSlots()
 
 void NetworkConnectionWidget::focusInEvent(QFocusEvent *event)
 {
+    Q_UNUSED(event)
+
     lineEditServerAddressIpV4->setFocus();
 }
 

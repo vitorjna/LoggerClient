@@ -40,10 +40,10 @@ private:
     void setupUi();
     void setupSignalsAndSlots();
 
-    QLabel                       *labelServerAddressIpV4;
-    QLineEdit                    *lineEditServerAddressIpV4;
-    QLineEdit                    *lineEditServerPort;
-    QPushButton                  *buttonConnectToServer;
+    QLabel                       *labelServerAddressIpV4{};
+    QLineEdit                    *lineEditServerAddressIpV4{};
+    QLineEdit                    *lineEditServerPort{};
+    QPushButton                  *buttonConnectToServer{};
 
 signals:
     void buttonConnectToServerToggled(bool);

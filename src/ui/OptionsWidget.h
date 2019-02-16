@@ -5,6 +5,7 @@
 #include <QDebug>
 #include <QDialogButtonBox>
 #include <QDir>
+#include <QFileDialog>
 #include <QGroupBox>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -28,6 +29,7 @@ private:
     void loadSettings();
 
     QStringList loadThemeChoices();
+    void saveSourceCodeLocations();
 
     QLabel                      *labelThemeChoice{};
     QComboBox                   *comboBoxSupportedLanguages{};
@@ -35,6 +37,9 @@ private:
     QComboBox                   *comboBoxCodeEditorNames{};
     QLineEdit                   *lineEditEditorLocation{};
     QLineEdit                   *lineEditEditorHandling{};
+    QPushButton                 *pushButtonSourceCodeLocationAdd{};
+    QPushButton                 *pushButtonSourceCodeLocationRemove{};
+    QListWidget                 *listWidgetSourceCodeLocations{};
 
     QDialogButtonBox            *buttonBoxCloseWindow{};
 
@@ -48,6 +53,11 @@ protected slots:
     void codeEditorSelectionChanged(const QString &szNewEditor);
     void codeEditorLocationChanged(const QString &szNewLocation);
 
+    void buttonAddLocationClicked(bool bState);
+    void buttonAddLocationResult(const QString &szFolder);
+    void buttonRemoveLocationClicked(bool bState);
+
+    void sourceLocationsListItemChanged(int nCurrentItem);
 
 //reimplemented
 protected:

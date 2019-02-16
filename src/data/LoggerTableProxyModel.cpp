@@ -82,7 +82,7 @@ QColor LoggerTableProxyModel::calculateColorForLevel(const QString &szLevel)
             return QColor(128, 0, 0, 255);
 
         case LoggerEnum::NONE:
-        default:
+        case LoggerEnum::COUNT_LOGGER_SEVERITY:
             return QColor(Qt::gray);
     }
 }
@@ -173,7 +173,7 @@ QList<QAction *> *LoggerTableProxyModel::generateActionsForIndex(const QModelInd
         case LoggerEnum::COLUMN_MESSAGE:
             break;
 
-        default:
+        case LoggerEnum::COUNT_TABLE_COLUMNS:
             break;
     }
 
@@ -232,22 +232,22 @@ QString LoggerTableProxyModel::getColumnName(LoggerEnum::Columns column)
             return QStringLiteral("#");
 
         case LoggerEnum::COLUMN_TIMESTAMP:
-            return QStringLiteral("Timestamp");
+            return tr("Timestamp");
 
         case LoggerEnum::COLUMN_THREADID:
-            return QStringLiteral("ThreadID");
+            return tr("ThreadID");
 
         case LoggerEnum::COLUMN_CLASS:
-            return QStringLiteral("Class");
+            return tr("Class");
 
         case LoggerEnum::COLUMN_SEVERITY:
-            return QStringLiteral("Level");
+            return tr("Level");
 
         case LoggerEnum::COLUMN_MESSAGE:
-            return QStringLiteral("Message");
+            return tr("Message");
 
-        default:
-            return QStringLiteral("");
+        case LoggerEnum::COUNT_TABLE_COLUMNS:
+            return QLatin1String("");
     }
 }
 
@@ -715,22 +715,28 @@ void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
     const QString &szClassName = myActionDataSplit.at(0);
     const QString &szLineNumber = myActionDataSplit.at(1);
 
-    //TODO fancy this shit up, with UI, parse files on App init, settings, multiple source folders...
+    //TODO parse files on App init
     QStringList szaSourceFolders = SourceCodeHandler::getSourceCodeLocations();
+    QString szFileExtension = SourceCodeHandler::getCurrentLanguageFileExtension();
+
+    if (szFileExtension.isEmpty()) {
+        emit showNotification(tr("Current language not configured"), ToastNotificationWidget::ERROR, 2000);
+        return;
+    }
 
     QString szFilenameFullPath;
 
     bool bFileFound = false;
 
-    for (int nIndex = 0; nIndex < szaSourceFolders.size() && bFileFound == false; nIndex++) {
-        QDirIterator myDirIterator(szaSourceFolders.at(nIndex), QStringList() << '*' + GlobalConstants::FILE_EXTENSION_CPP, QDir::Files, QDirIterator::Subdirectories | QDirIterator::FollowSymlinks);
+    for (int nIndex = 0; nIndex < szaSourceFolders.size() && bFileFound == false; ++nIndex) {
+        QDirIterator myDirIterator(szaSourceFolders.at(nIndex), QStringList() << '*' + szFileExtension, QDir::Files, QDirIterator::Subdirectories | QDirIterator::FollowSymlinks);
 
         while (myDirIterator.hasNext()) {
 
             QString szCurrent = myDirIterator.next();
             qDebug() << szCurrent;
 
-            if (szCurrent.endsWith('/' + szClassName + GlobalConstants::FILE_EXTENSION_CPP) == true) {
+            if (szCurrent.endsWith('/' + szClassName + szFileExtension) == true) {
                 szFilenameFullPath = szCurrent;
                 bFileFound = true;
                 break;
@@ -742,7 +748,9 @@ void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
         emit showNotification(tr("No source file found"), ToastNotificationWidget::ERROR, 2000);
 
     } else {
-        QProcess::execute(SourceCodeHandler::buildCallToEditor(SourceCodeHandler::QtCreator, szFilenameFullPath, szLineNumber));
+        SourceCodeHandler::openFileInEditor(SourceCodeHandler::getCurrentEditor(), szFilenameFullPath, szLineNumber);
+
+        emit showNotification(tr("File opened: ") + szFilenameFullPath, ToastNotificationWidget::SUCCESS, 2000);
     }
 }
 

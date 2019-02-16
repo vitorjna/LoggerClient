@@ -38,7 +38,7 @@ void ToastNotificationWidget::setStyleSheet(const NotificationType eNotifType)
             break;
 
         case ToastNotificationWidget::ERROR:
-        default:
+        case ToastNotificationWidget::COUNT_NOTIF_TYPES:
             szColor = QColor(192, 0, 0, 192).name();
             break;
 
@@ -61,7 +61,6 @@ void ToastNotificationWidget::setStyleSheet(const QString &szStyleSheet)
 
 ToastNotificationWidget::ToastNotificationWidget(const NotificationType eNotifType, QWidget *parent)
     : QWidget(parent)
-    , labelMessage(nullptr)
 {
     setupUi();
     setStyleSheet(eNotifType);
@@ -88,5 +87,5 @@ void ToastNotificationWidget::setupUi()
 
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
-    resize(nWidgetWidth, nWidgetHeight);
+    setMinimumSize(nWidgetWidth, nWidgetHeight);
 }

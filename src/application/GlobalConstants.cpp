@@ -25,6 +25,7 @@ const QString   GlobalConstants::SETTINGS_SOURCE_LANGUAGE           = QStringLit
 const QString   GlobalConstants::SETTINGS_SOURCE_LOCATION           = QStringLiteral("SourceLocation");
 
 const QString   GlobalConstants::FILE_EXTENSION_CPP                 = QStringLiteral(".cpp");
+const QString   GlobalConstants::FILE_EXTENSION_JAVA                = QStringLiteral(".java");
 const QString   GlobalConstants::FILE_EXTENSION_LOG                 = QStringLiteral(".log");
 const QString   GlobalConstants::FILE_EXTENSION_QSS                 = QStringLiteral(".qss");
 const QString   GlobalConstants::FILE_EXTENSION_TXT                 = QStringLiteral(".txt");

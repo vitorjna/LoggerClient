@@ -31,8 +31,6 @@ ChannelSocketClient::~ChannelSocketClient()
 
 bool ChannelSocketClient::connect(const QString &szIpAddress, const QString &szPort)
 {
-    bKeepRetrying = true; //TODO get this by argument
-
     qDebug() << "Connecting to" << szIpAddress << ":" << szPort;
 
     if (NetworkUtils::isIpV4Address(szIpAddress) == false
