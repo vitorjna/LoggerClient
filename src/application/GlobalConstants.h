@@ -30,6 +30,7 @@ public:
     static const QString    SETTINGS_SOURCE_LOCATION;
 
     static const QString    FILE_EXTENSION_CPP;
+    static const QString    FILE_EXTENSION_JAVA;
     static const QString    FILE_EXTENSION_LOG;
     static const QString    FILE_EXTENSION_QSS;
     static const QString    FILE_EXTENSION_TXT;

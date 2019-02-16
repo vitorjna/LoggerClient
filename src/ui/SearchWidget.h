@@ -5,9 +5,9 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QObject>
 #include <QPushButton>
 #include <QStyle>
-#include <QObject>
 
 class SearchWidget : public QWidget
 {
@@ -21,11 +21,11 @@ private:
     void setupUi();
     void setupSignalsAndSlots();
 
-    QLabel          *labelSearchText;
-    QLineEdit       *lineEditSearchText;
+    QLabel          *labelSearchText{};
+    QLineEdit       *lineEditSearchText{};
 
-    QPushButton     *pushButtonPreviousResult;
-    QPushButton     *pushButtonNextResult;
+    QPushButton     *pushButtonPreviousResult{};
+    QPushButton     *pushButtonNextResult{};
 
 signals:
     void searchTextChanged(QString);

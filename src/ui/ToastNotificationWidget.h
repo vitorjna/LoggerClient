@@ -36,6 +36,6 @@ private:
 
     void setupUi();
 
-    QLabel          *labelMessage;
+    QLabel          *labelMessage{};
 
 };

@@ -2,7 +2,7 @@
 #include "util/MemoryUtils.h"
 
 TcpSocketThreadable::TcpSocketThreadable(QObject *parent)
-    : QTcpSocket() //parent removed, to allow moveToThread
+    : QTcpSocket(nullptr) //parent removed, to allow moveToThread
     , myMutex(new QMutex(QMutex::NonRecursive))
     , nTimeout(3000)
 {
@@ -10,8 +10,8 @@ TcpSocketThreadable::TcpSocketThreadable(QObject *parent)
 
     setSocketOption(QAbstractSocket::LowDelayOption, 1);
 
-    QObject::connect(this,      SIGNAL(readyRead()),
-                     this,      SLOT(readNewMessage()));
+    QObject::connect(this, &TcpSocketThreadable::readyRead,
+                     this, &TcpSocketThreadable::readNewMessage);
 }
 
 TcpSocketThreadable::~TcpSocketThreadable()
@@ -32,16 +32,22 @@ void TcpSocketThreadable::connectSocket(const QString &szIpAddress, const quint1
         case QAbstractSocket::ConnectingState:
         case QAbstractSocket::ConnectedState:
             return;
+
+        case QAbstractSocket::UnconnectedState:
+        case QAbstractSocket::BoundState:
+        case QAbstractSocket::ListeningState:
+        case QAbstractSocket::ClosingState:
+            break;
     }
 
-    this->connectToHost(szIpAddress, nPort);
-    this->waitForConnected(nTimeout);
+    connectToHost(szIpAddress, nPort);
+    waitForConnected(nTimeout);
 }
 
 void TcpSocketThreadable::disconnectSocket()
 {
     if (this->state() == QAbstractSocket::ConnectedState) {
-        this->disconnectFromHost();
+        disconnectFromHost();
 //        mySocket->waitForDisconnected(nTimeout);
     }
 }

@@ -349,7 +349,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
 
     switch (eMode) {
         case LoggerClientWidget::EMPTY:
-        default:
+        case LoggerClientWidget::COUNT_LOG_MODE:
             this->setWindowTitle(szWindowTitle);
 
             myServerConnectionWidget->setEnabled(true);
@@ -437,7 +437,7 @@ void LoggerClientWidget::selectFocus()
 {
     switch (eCurrentMode) {
         case LoggerClientWidget::EMPTY:
-        default:
+        case LoggerClientWidget::COUNT_LOG_MODE:
             myServerConnectionWidget->setFocus();
             break;
 
@@ -469,7 +469,7 @@ void LoggerClientWidget::updateButtonsRowCountDependent(LogMode eNewMode)
 
         switch (eNewMode) {
             case LoggerClientWidget::EMPTY:
-            default:
+            case LoggerClientWidget::COUNT_LOG_MODE:
                 break;
 
             case LoggerClientWidget::CLIPBOARD:
@@ -709,24 +709,21 @@ void LoggerClientWidget::buttonClickedSaveToFile(QAction *myAction)
     bool bOpenAfterSave = false;
 
     switch (static_cast<SaveToFileAction>(myAction->data().toInt())) {
-        default:
-        case LoggerClientWidget::SAVE: {
+        case LoggerClientWidget::SAVE:
+        case LoggerClientWidget::COUNT_SAVE_TO_FILE:
             bChooseFile = false;
             bOpenAfterSave = false;
             break;
-        }
 
-        case LoggerClientWidget::SAVE_AS: {
+        case LoggerClientWidget::SAVE_AS:
             bChooseFile = true;
             bOpenAfterSave = false;
             break;
-        }
 
-        case LoggerClientWidget::SAVE_AND_OPEN: {
+        case LoggerClientWidget::SAVE_AND_OPEN:
             bChooseFile = false;
             bOpenAfterSave = true;
             break;
-        }
     }
 
     if (bOpenAfterSave == true) {

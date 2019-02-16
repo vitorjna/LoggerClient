@@ -9,7 +9,6 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QMutex>
-#include <QProcess>
 #include <QSortFilterProxyModel>
 #include <QStandardItem>
 #include <QThread>

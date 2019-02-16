@@ -20,19 +20,16 @@ project(${ProjectName})
 
 if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(TARGET_WINDOWS 1)
-    set(ControllerName "IntegraTEC_Windows")
     message("Building for Windows")
 
     add_definitions(-DBOOST_ASIO_DISABLE_IOCP)
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(TARGET_LINUX 1)
-    set(ControllerName "IntegraTEC_Linux")
     message("Building for Linux")
 
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     set(TARGET_OSX 1)
-    set(ControllerName "IntegraTEC_OSX")
     message("Building for OSX")
 
 endif()
@@ -53,8 +50,8 @@ endif(CCACHE_FOUND)
 # -------------------------------------------------------------------------------- #
 
 #if(TARGET_WINDOWS OR TARGET_LINUX OR TARGET_OSX)
-#    set(OPENSSL_ROOT_DIR ${IntegraTEC_OpenSSL})
-#    set(OPENSSL_LIBRARIES ${IntegraTEC_OpenSSL}/lib)
+#    set(OPENSSL_ROOT_DIR ${path_to_OpenSSL})
+#    set(OPENSSL_LIBRARIES ${path_to_OpenSSL}/lib)
 ##    find_package(OpenSSL REQUIRED)
 #    message("OpenSSL libraries:\t${OPENSSL_LIBRARIES}")
 
@@ -122,7 +119,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${TARGET_INCLUDES})
 # ---------------------------------- COMPILATION --------------------------------- #
 # -------------------------------------------------------------------------------- #
 
-set(CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS} -fno-operator-names -fmessage-length=0 -std=c++11 -pedantic -DBOOST_NO_LONG_LONG -U_GLIBCXX_HAVE_ISWBLANK -Wno-long-long")
+set(CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS} -fno-operator-names -fmessage-length=0 -std=c++11 -pedantic -DBOOST_NO_LONG_LONG -U_GLIBCXX_HAVE_ISWBLANK")
 
 if (TARGET_WINDOWS OR TARGET_LINUX OR TARGET_OSX)
     set(CXX_FLAGS_COMMON "${CXX_FLAGS_COMMON}")
@@ -181,7 +178,6 @@ target_link_libraries(${PROJECT_NAME} ${TARGET_LIBRARIES})
 
 
 set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
-    -Wl,-L\"${IntegraTEC_Boost}/lib\" \
     ")
 
 if(TARGET_WINDOWS OR TARGET_LINUX)
@@ -194,6 +190,7 @@ if(TARGET_WINDOWS OR TARGET_LINUX)
 
 endif()
 
+#   -Wl,-L\"${path_to_lib}/lib\" \
 #    -Wl,-s \
 #        -Wl,--as-needed \
 #        -Wl,--print-gc-sections \

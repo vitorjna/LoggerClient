@@ -61,7 +61,7 @@ void OptionsWidget::setupUi()
             sourceCodeEditorLabel->setText(tr("Application"));
 
             comboBoxCodeEditorNames = new QComboBox(this);
-            comboBoxCodeEditorNames->addItems(SourceCodeHandler::getEditorNames().toList());
+            comboBoxCodeEditorNames->addItems(SourceCodeHandler::getEditorNames());
 
             sourceCodeEditorLayout->addWidget(sourceCodeEditorLabel,    0,  0);
             sourceCodeEditorLayout->addWidget(comboBoxCodeEditorNames,  0,  1);
@@ -82,10 +82,20 @@ void OptionsWidget::setupUi()
         QGroupBox *sourceCodeLocationsGroup = new QGroupBox(tr("Source code locations"));
         QGridLayout *sourceCodeLocationsLayout = new QGridLayout(sourceCodeLocationsGroup);
         {
-            QListWidget *sourceCodeLocationsWidget = new QListWidget(this);
-            sourceCodeLocationsWidget->addItems(SourceCodeHandler::getSourceCodeLocations());
+            pushButtonSourceCodeLocationAdd = new QPushButton(this);
+            pushButtonSourceCodeLocationAdd->setText(tr("Add location"));
 
-            sourceCodeLocationsLayout->addWidget(sourceCodeLocationsWidget, 0, 0);
+            pushButtonSourceCodeLocationRemove = new QPushButton(this);
+            pushButtonSourceCodeLocationRemove->setText(tr("Remove"));
+            pushButtonSourceCodeLocationRemove->setEnabled(false);
+
+            listWidgetSourceCodeLocations = new QListWidget(this);
+            listWidgetSourceCodeLocations->addItems(SourceCodeHandler::getSourceCodeLocations());
+
+            sourceCodeLocationsLayout->addWidget(pushButtonSourceCodeLocationAdd,       0, 0);
+            sourceCodeLocationsLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed), 0, 1);
+            sourceCodeLocationsLayout->addWidget(pushButtonSourceCodeLocationRemove,    0, 2);
+            sourceCodeLocationsLayout->addWidget(listWidgetSourceCodeLocations,         1, 0, 2, -1);
         }
         sourceCodeLayout->addWidget(sourceCodeLocationsGroup,  2,  0, 1, -1);
 
@@ -93,6 +103,8 @@ void OptionsWidget::setupUi()
     myMainLayout->addWidget(sourceCodeGroup,        nCurrentRow, 0, 1, -1);
     ++nCurrentRow;
 
+    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::Expanding), nCurrentRow, 0);
+    ++nCurrentRow;
 
     buttonBoxCloseWindow = new QDialogButtonBox(this);
     buttonBoxCloseWindow->setStandardButtons(QDialogButtonBox::Close);
@@ -103,12 +115,11 @@ void OptionsWidget::setupUi()
     this->setLayout(myMainLayout);
     this->setAttribute(Qt::WA_DeleteOnClose, false);
     this->setWindowFlags(Qt::Window  | Qt::CustomizeWindowHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint);
-    this->resize(400, 500);
+    this->resize(600, 600);
 
     this->setWindowIcon(QIcon(":/icons/themes/icons/appIcon.svg"));
 
     this->hide();
-//    this->show();
 }
 
 void OptionsWidget::setupSignalsAndSlots()
@@ -127,6 +138,15 @@ void OptionsWidget::setupSignalsAndSlots()
 
     connect(lineEditEditorLocation,     &QLineEdit::textEdited,
             this,                       &OptionsWidget::codeEditorLocationChanged);
+
+    connect(pushButtonSourceCodeLocationAdd,        &QPushButton::clicked,
+            this,                                   &OptionsWidget::buttonAddLocationClicked);
+
+    connect(pushButtonSourceCodeLocationRemove,     &QPushButton::clicked,
+            this,                                   &OptionsWidget::buttonRemoveLocationClicked);
+
+    connect(listWidgetSourceCodeLocations,          &QListWidget::currentRowChanged,
+            this,                                   &OptionsWidget::sourceLocationsListItemChanged);
 }
 
 void OptionsWidget::loadSettings()
@@ -134,10 +154,10 @@ void OptionsWidget::loadSettings()
     QString szThemeSelected = AppSettings::getValue(AppSettings::KEY_THEME_NAME, GlobalConstants::SETTINGS_THEME_DEFAULT).toString();
     comboBoxThemeChoice->setCurrentText(szThemeSelected);
 
-    QString szCodeLanguage = AppSettings::getValue(AppSettings::KEY_SOURCE_LANGUAGE, SourceCodeHandler::getSupportedLanguages().at(0)).toString();
+    QString szCodeLanguage = SourceCodeHandler::getCurrentLanguage();
     comboBoxSupportedLanguages->setCurrentText(szCodeLanguage);
 
-    QString szEditorName = AppSettings::getValue(AppSettings::KEY_CODE_EDITOR_NAME, SourceCodeHandler::getEditorName(SourceCodeHandler::QtCreator)).toString();
+    QString szEditorName = SourceCodeHandler::getCurrentEditorName();
     comboBoxCodeEditorNames->setCurrentText(szEditorName);
 
     lineEditEditorLocation->setText(SourceCodeHandler::getEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())));
@@ -153,6 +173,17 @@ QStringList OptionsWidget::loadThemeChoices()
     szaThemesAvailable.replaceInStrings(GlobalConstants::FILE_EXTENSION_QSS, QLatin1String(""));
 
     return szaThemesAvailable;
+}
+
+void OptionsWidget::saveSourceCodeLocations()
+{
+    QStringList szaSourceFolders;
+
+    for (int nIndex = 0; nIndex < listWidgetSourceCodeLocations->count(); ++nIndex) {
+        szaSourceFolders << listWidgetSourceCodeLocations->item(nIndex)->text();
+    }
+
+    SourceCodeHandler::setSourceCodeLocations(szaSourceFolders);
 }
 
 void OptionsWidget::themeSelectionChanged(const QString &szNewTheme)
@@ -184,12 +215,12 @@ void OptionsWidget::themeSelectionChanged(const QString &szNewTheme)
 
 void OptionsWidget::codeEditorLanguageChanged(const QString &szNewLanguage)
 {
-    AppSettings::setValue(AppSettings::KEY_SOURCE_LANGUAGE, szNewLanguage);
+    SourceCodeHandler::setCurrentLanguage(szNewLanguage);
 }
 
 void OptionsWidget::codeEditorSelectionChanged(const QString &szNewEditor)
 {
-    AppSettings::setValue(AppSettings::KEY_CODE_EDITOR_NAME, szNewEditor);
+    SourceCodeHandler::setCurrentEditor(szNewEditor);
 
     lineEditEditorLocation->setText(SourceCodeHandler::getEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())));
     lineEditEditorHandling->setText(SourceCodeHandler::getEditorHandling(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())));
@@ -198,6 +229,40 @@ void OptionsWidget::codeEditorSelectionChanged(const QString &szNewEditor)
 void OptionsWidget::codeEditorLocationChanged(const QString &szNewLocation)
 {
     SourceCodeHandler::setEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex()), szNewLocation);
+}
+
+void OptionsWidget::buttonAddLocationClicked(bool bState)
+{
+    Q_UNUSED(bState)
+
+    QFileDialog *myFileDialog = new QFileDialog(this);
+    myFileDialog->setAcceptMode(QFileDialog::AcceptOpen);
+    myFileDialog->setFileMode(QFileDialog::Directory);
+
+    myFileDialog->open(this, SLOT(buttonAddLocationResult(QString)));
+}
+
+void OptionsWidget::buttonAddLocationResult(const QString &szFolder)
+{
+    listWidgetSourceCodeLocations->addItem(szFolder);
+
+    saveSourceCodeLocations();
+}
+
+void OptionsWidget::buttonRemoveLocationClicked(bool bState)
+{
+    Q_UNUSED(bState)
+
+    delete listWidgetSourceCodeLocations->takeItem(listWidgetSourceCodeLocations->currentRow());
+
+    saveSourceCodeLocations();
+}
+
+void OptionsWidget::sourceLocationsListItemChanged(int nCurrentItem)
+{
+    Q_UNUSED(nCurrentItem)
+
+    pushButtonSourceCodeLocationRemove->setEnabled(true);
 }
 
 void OptionsWidget::closeEvent(QCloseEvent *event)
