@@ -1,4 +1,5 @@
 #include "LoggerTreeView.h"
+#include "application/GlobalConstants.h"
 
 LoggerTreeView::LoggerTreeView(QWidget *parent)
     : QTreeView(parent)
@@ -47,7 +48,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
                 szRowContents.append(szCellValue); //for the last column, no need to indent
 
             } else {
-                szRowContents.append(szCellValue.leftJustified(naMaxSizes.at(nCol - nLeft), ' '));    //using spaces as separator. Using \t would change the message structure
+                szRowContents.append(szCellValue.leftJustified(naMaxSizes.at(nCol - nLeft), GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN)); //using spaces as separator. Using \t would change the message structure
             }
         }
 
@@ -56,7 +57,9 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
         }
     }
 
-    QString szText = szSelectionContents.join('\n');
+    QString szText = szSelectionContents.join(GlobalConstants::SEPARATOR_EXPORTED_TEXT_LINE);
+    szText.append(GlobalConstants::SEPARATOR_EXPORTED_TEXT_LINE);
+
     return szText;
 }
 
@@ -82,17 +85,29 @@ int LoggerTreeView::getColumnMaxWidth(const int nCol, int nRowTop, int nRowBotto
 void LoggerTreeView::keyPressEvent(QKeyEvent *myKeyEvent)
 {
     if (myKeyEvent->key() == Qt::Key_Delete) {
-        foreach (QModelIndex index, selectedIndexes()) {
-            model()->removeRow(index.row());
-        }
+        //TODO can't delete multiple selections, as the indexes change and a selection of index 5 and 10 would delete 5 and then 11, which is now 10
+//        const QItemSelection myItemSelection = selectionModel()->selection();
+//        for (const QItemSelectionRange &selectionRange : myItemSelection) {
+        const QItemSelectionRange &mySelectionRange = selectionModel()->selection().first();
+        model()->removeRows(mySelectionRange.top(), mySelectionRange.height());
+//        }
 
     } else if (myKeyEvent->matches(QKeySequence::Copy)) {
-        if (selectedIndexes().isEmpty() == true) {
+        QModelIndexList myModelIndexList = selectedIndexes();
+
+        if (myModelIndexList.isEmpty() == true) {
             return;
         }
 
-        QItemSelectionRange selectionRange = selectionModel()->selection().first();
-        QString szText = this->toString(selectionRange.top(), selectionRange.bottom(), selectionRange.left(), selectionRange.right());
+        QString szText;
+
+        const QItemSelection &myItemSelection = selectionModel()->selection();
+
+        //TODO export follows selection order, not index order
+        for (const QItemSelectionRange &mySelectionRange : myItemSelection) {
+            szText.append(this->toString(mySelectionRange.top(), mySelectionRange.bottom(), mySelectionRange.left(), mySelectionRange.right()));
+        }
+
         QApplication::clipboard()->setText(szText);
 
     } else {

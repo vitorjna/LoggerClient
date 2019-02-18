@@ -27,7 +27,7 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     , myOptionsWidget(new OptionsWidget(this))
 {
 #ifdef DEBUG_STUFF
-    initDebugStuff();
+//    initDebugFocusChanged();
 #endif
 
     this->hide();
@@ -67,9 +67,9 @@ void LoggerClientWidget::saveWindowPosition()
 
     AppSettings::setValue(AppSettings::KEY_WINDOW_POS_MAIN,
                           QString::number(myPos.x())
-                          + GlobalConstants::SETTINGS_STRING_SEPARATOR + QString::number(myPos.y())
-                          + GlobalConstants::SETTINGS_STRING_SEPARATOR + QString::number(mySize.width())
-                          + GlobalConstants::SETTINGS_STRING_SEPARATOR + QString::number(mySize.height())
+                          + GlobalConstants::SEPARATOR_SETTINGS_LIST + QString::number(myPos.y())
+                          + GlobalConstants::SEPARATOR_SETTINGS_LIST + QString::number(mySize.width())
+                          + GlobalConstants::SEPARATOR_SETTINGS_LIST + QString::number(mySize.height())
                          );
 }
 
@@ -107,12 +107,13 @@ void LoggerClientWidget::setupUI()
                 labelLoggerPattern = new QLabel(this);
                 labelLoggerPattern->setText(tr("Pattern:"));
 
-                lineEditLoggerPattern = new QLineEdit(this);
-                lineEditLoggerPattern->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+                comboBoxLoggerPattern = new QComboBox(this);
+                comboBoxLoggerPattern->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+                comboBoxLoggerPattern->setEditable(true);
             }
 
             myOptionsLayout->addWidget(labelLoggerPattern);
-            myOptionsLayout->addWidget(lineEditLoggerPattern);
+            myOptionsLayout->addWidget(comboBoxLoggerPattern);
             myOptionsLayout->addSpacing(20);
 
             //other options
@@ -261,8 +262,8 @@ void LoggerClientWidget::setupSignalsAndSlots()
     });
 
     //PATTERN
-    connect(lineEditLoggerPattern,      SIGNAL(editingFinished()),
-            this,                       SLOT(loggerPatternEditingFinished()));
+    connect(comboBoxLoggerPattern,      &QComboBox::currentTextChanged,
+            this,                       &LoggerClientWidget::loggerPatternEditingFinished);
 
     connect(this,                       SIGNAL(loggerPatternChanged(QString)),
             myProxyModel,               SLOT(setLoggerPattern(QString)));
@@ -314,7 +315,7 @@ void LoggerClientWidget::setupShortcuts()
 void LoggerClientWidget::loadSettings()
 {
     QString szDimensions = AppSettings::getValue(AppSettings::KEY_WINDOW_POS_MAIN, "0").toString();
-    QVector<QStringRef> szraDimensions = szDimensions.splitRef(GlobalConstants::SETTINGS_STRING_SEPARATOR);
+    QVector<QStringRef> szraDimensions = szDimensions.splitRef(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
     if (szraDimensions.size() == 4) {
         QPoint myPos(szraDimensions.at(0).toInt(), szraDimensions.at(1).toInt());
@@ -333,10 +334,17 @@ void LoggerClientWidget::loadSettings()
     QString szServerPort = AppSettings::getValue(AppSettings::KEY_SERVER_PORT).toString();
     myServerConnectionWidget->setPort(szServerPort);
 
-    QString szLoggerPattern = AppSettings::getValue(AppSettings::KEY_LOGGER_PATTERN, QStringLiteral("%d %t [%c{1}] %p - %m")).toString();
-    lineEditLoggerPattern->setText(szLoggerPattern);
-    emit loggerPatternChanged(szLoggerPattern);
+    QString szLoggerPatterns = AppSettings::getValue(AppSettings::KEY_LOGGER_PATTERN,
+                                                     QStringLiteral("%d %t [%c{1}] %p - %m")
+                                                     + GlobalConstants::SEPARATOR_SETTINGS_LIST + QStringLiteral("%d [%c{1}] %p - %m")
+                                                     + GlobalConstants::SEPARATOR_SETTINGS_LIST + QStringLiteral("%d %c{1} [%c{1}] %p - %m")
+                                                    ).toString();
 
+    QStringList szaLoggerPatterns = szLoggerPatterns.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
+
+    comboBoxLoggerPattern->addItems(szaLoggerPatterns);
+
+    emit loggerPatternChanged(szaLoggerPatterns.first());
 }
 
 void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &szText)
@@ -355,7 +363,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setEnabled(true);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
 
-            lineEditLoggerPattern->setEnabled(true);
+            comboBoxLoggerPattern->setEnabled(true);
 
             buttonOpenFile->setEnabled(true);
             buttonOpenFile->setChecked(false);
@@ -368,7 +376,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setEnabled(true);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
 
-            lineEditLoggerPattern->setEnabled(true);
+            comboBoxLoggerPattern->setEnabled(true);
 
             buttonOpenFile->setChecked(false);
             buttonOpenFile->setText(tr("Open log file"));
@@ -380,7 +388,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setEnabled(false);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
 
-            lineEditLoggerPattern->setEnabled(false);
+            comboBoxLoggerPattern->setEnabled(false);
 
             buttonOpenFile->setChecked(true);
             buttonOpenFile->setText("Close " + szText);
@@ -810,7 +818,7 @@ void LoggerClientWidget::searchTextChanged(const QString &szText)
 
 //    QStringList matchRows;
 
-//    foreach (const QModelIndex &myIndex, myMatches ) {
+//    for (const QModelIndex &myIndex : myMatches) {
 ////        QTableWidgetItem *item = table->item(myIndex.row(), myIndex.column());
 //        matchRows << QString::number(myIndex.row());
 //    }
@@ -844,13 +852,20 @@ void LoggerClientWidget::newMessageReceived(const QString &szMessage)
 //    myTableView->viewport()->update();
 }
 
-void LoggerClientWidget::loggerPatternEditingFinished()
+void LoggerClientWidget::loggerPatternEditingFinished(const QString &szLoggerPattern)
 {
-    QString szLoggerPattern = lineEditLoggerPattern->text();
-
     emit loggerPatternChanged(szLoggerPattern);
 
-    AppSettings::setValue(AppSettings::KEY_LOGGER_PATTERN, szLoggerPattern);
+    QStringList szaLoggerPatterns;
+    szaLoggerPatterns << szLoggerPattern;
+
+    for (int nIndex = 0; nIndex < comboBoxLoggerPattern->count(); ++nIndex) {
+        if (nIndex != comboBoxLoggerPattern->currentIndex()) {
+            szaLoggerPatterns << comboBoxLoggerPattern->itemText(nIndex);
+        }
+    }
+
+    AppSettings::setValue(AppSettings::KEY_LOGGER_PATTERN, szaLoggerPatterns.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));
 }
 
 void LoggerClientWidget::tableViewHeaderResized(int logicalIndex, int oldSize, int newSize)
@@ -909,7 +924,7 @@ void LoggerClientWidget::moveEvent(QMoveEvent *event)
 }
 
 #ifdef DEBUG_STUFF
-void LoggerClientWidget::initDebugStuff()
+void LoggerClientWidget::initDebugFocusChanged()
 {
     ///DEBUG
     connect(qApp,                       &QApplication::focusChanged,

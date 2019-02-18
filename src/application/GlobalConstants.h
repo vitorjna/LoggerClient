@@ -5,7 +5,15 @@
 class GlobalConstants
 {
 public:
-    static const QChar      SETTINGS_STRING_SEPARATOR;
+    enum ErrorCode {
+        SUCCESS,
+        ERROR,
+        COUNT_ERROR_CODE
+    };
+
+    static const QString    SEPARATOR_SETTINGS_LIST;
+    static const QChar      SEPARATOR_EXPORTED_TEXT_LINE;
+    static const QChar      SEPARATOR_EXPORTED_TEXT_COLUMN;
 
     ///Settings Groups
     static const QString    WIDGET_MAIN_WINDOW;

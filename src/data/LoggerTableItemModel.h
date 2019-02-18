@@ -5,13 +5,22 @@
 #include <QFileInfo>
 #include <QStandardItemModel>
 
+class LoggerTableProxyModel;
+
+//TODO the model <-> proxy structure is wrong. Most stuff should be in the model, not the proxy. And the model should not call the proxy for data access
+
 class LoggerTableItemModel : public QStandardItemModel
 {
     Q_OBJECT
 
 public:
-    explicit LoggerTableItemModel(QObject *parent = nullptr);
+    explicit LoggerTableItemModel(LoggerTableProxyModel *myProxyModel, QObject *parent = nullptr);
     ~LoggerTableItemModel() override;
+
+    QColor getColorForLevel(const QString &szLevel) const;
+
+private:
+    LoggerTableProxyModel *myProxyModel;
 
 //reimplemented methods
 public:

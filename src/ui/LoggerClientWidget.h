@@ -92,12 +92,12 @@ private:
     QPushButton             *buttonOpenFile{};
 
     QLabel                  *labelLoggerPattern{};
-    QLineEdit               *lineEditLoggerPattern{};
+    QComboBox               *comboBoxLoggerPattern{};
 
     QPushButton             *pushButtonClearFilter{};
     QPushButton             *pushButtonClearTable{};
     PushButtonWithMenu      *pushButtonSaveToFile{};
-    QVector<QAction *>           myActionsSaveToFile;
+    QVector<QAction *>      myActionsSaveToFile;
 
     QPushButton             *pushButtonOptions{};
     OptionsWidget           *myOptionsWidget;
@@ -141,7 +141,7 @@ private slots:
     void connectionInProgress();
     void newMessageReceived(const QString &szMessage);
 
-    void loggerPatternEditingFinished();
+    void loggerPatternEditingFinished(const QString &szLoggerPattern);
 
     void tableViewHeaderResized(int logicalIndex, int oldSize, int newSize);
 
@@ -162,7 +162,7 @@ protected:
 
 #ifdef DEBUG_STUFF
 private:
-    void initDebugStuff();
+    void initDebugFocusChanged();
 #endif
 
 };
