@@ -29,9 +29,9 @@ void PushButtonWithMenu::addAction(QAction *myAction)
 
 }
 
-void PushButtonWithMenu::addActions(QList<QAction *> myActionList)
+void PushButtonWithMenu::addActions(const QList<QAction *> *myActionList)
 {
-    foreach (QAction *myAction, myActionList) {
+    for (QAction *myAction : *myActionList) {
         this->addAction(myAction);
     }
 }

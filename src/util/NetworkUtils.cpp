@@ -1,7 +1,5 @@
 #include "NetworkUtils.h"
 
-#include "ui/LoggerClientWidget.h"
-
 bool NetworkUtils::isIpV4Address(const QString &szIpAddress)
 {
     if (szIpAddress == QStringLiteral("localhost")) {

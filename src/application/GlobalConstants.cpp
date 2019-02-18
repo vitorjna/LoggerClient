@@ -1,6 +1,8 @@
 #include "GlobalConstants.h"
 
-const QChar     GlobalConstants::SETTINGS_STRING_SEPARATOR          = '#';
+const QString   GlobalConstants::SEPARATOR_SETTINGS_LIST            = QStringLiteral("<@>");
+const QChar     GlobalConstants::SEPARATOR_EXPORTED_TEXT_LINE       = '\n';
+const QChar     GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN     = ' ';
 
 ///Settings Groups
 const QString   GlobalConstants::WIDGET_MAIN_WINDOW                 = QStringLiteral("LoggerClientWidget");

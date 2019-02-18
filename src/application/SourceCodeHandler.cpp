@@ -1,12 +1,11 @@
 #include "SourceCodeHandler.h"
 #include "application/AppSettings.h"
-#include "application/GlobalConstants.h"
 
 const QString SourceCodeHandler::LANGUAGE_NAME_CPP = QStringLiteral("C++");
 const QString SourceCodeHandler::LANGUAGE_NAME_JAVA = QStringLiteral("Java");
 
-const QString SourceCodeHandler::szArgumentSourceFileName = QStringLiteral("%S");
-const QString SourceCodeHandler::szArgumentSourceFileLine = QStringLiteral("%L");
+const QString SourceCodeHandler::szArgumentSourceFileName = QStringLiteral("%s");
+const QString SourceCodeHandler::szArgumentSourceFileLine = QStringLiteral("%l");
 
 const QStringList SourceCodeHandler::szaEditorNames = initEditorNames();
 const QStringList SourceCodeHandler::szaSupportedLanguages = initSupportedLanguages();
@@ -60,14 +59,14 @@ QStringList SourceCodeHandler::getSourceCodeLocations()
         return szaSourceFolders;
     }
 
-    szaSourceFolders = szSourceLocations.split(GlobalConstants::SETTINGS_STRING_SEPARATOR);
+    szaSourceFolders = szSourceLocations.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
     return szaSourceFolders;
 }
 
 void SourceCodeHandler::setSourceCodeLocations(const QStringList &szaSourceFolders)
 {
-    AppSettings::setValue(AppSettings::KEY_SOURCE_LOCATION, szaSourceFolders.join(GlobalConstants::SETTINGS_STRING_SEPARATOR));
+    AppSettings::setValue(AppSettings::KEY_SOURCE_LOCATION, szaSourceFolders.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));
 }
 
 QStringList SourceCodeHandler::getEditorNames()
@@ -85,7 +84,7 @@ QString SourceCodeHandler::getEditorLocation(const SourceCodeHandler::SourceCode
     QString szEditorLocations = AppSettings::getValue(AppSettings::KEY_CODE_EDITOR_LOCATION).toString();
 
     if (szEditorLocations.isEmpty() == false) {
-        QStringList szaEditorLocations = szEditorLocations.split(GlobalConstants::SETTINGS_STRING_SEPARATOR);
+        QStringList szaEditorLocations = szEditorLocations.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
         if (szaEditorLocations.size() == COUNT_SOURCE_CODE_EDITORS) {
             return szaEditorLocations.at(eEditor);
@@ -99,7 +98,7 @@ void SourceCodeHandler::setEditorLocation(const SourceCodeHandler::SourceCodeEdi
 {
     QString szEditorLocations = AppSettings::getValue(AppSettings::KEY_CODE_EDITOR_LOCATION).toString();
 
-    QStringList szaEditorLocations = szEditorLocations.split(GlobalConstants::SETTINGS_STRING_SEPARATOR);
+    QStringList szaEditorLocations = szEditorLocations.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
     if (szaEditorLocations.size() == COUNT_SOURCE_CODE_EDITORS) {
         szaEditorLocations.replace(eEditor, szEditorLocation);
@@ -117,7 +116,7 @@ void SourceCodeHandler::setEditorLocation(const SourceCodeHandler::SourceCodeEdi
         }
     }
 
-    AppSettings::setValue(AppSettings::KEY_CODE_EDITOR_LOCATION, szaEditorLocations.join(GlobalConstants::SETTINGS_STRING_SEPARATOR));
+    AppSettings::setValue(AppSettings::KEY_CODE_EDITOR_LOCATION, szaEditorLocations.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));
 }
 
 SourceCodeHandler::SourceCodeEditors SourceCodeHandler::getCurrentEditor()
@@ -142,7 +141,7 @@ QString SourceCodeHandler::getEditorHandling(const SourceCodeHandler::SourceCode
             return QStringLiteral("-client ") + szArgumentSourceFileName + ':' + szArgumentSourceFileLine;
 
         case SourceCodeHandler::Eclipse:
-            return QLatin1String("");
+            return QStringLiteral("--launcher.openFile ") + szArgumentSourceFileName + ':' + szArgumentSourceFileLine;
 
         case SourceCodeHandler::IngeDev:
             return QLatin1String("");
@@ -152,7 +151,7 @@ QString SourceCodeHandler::getEditorHandling(const SourceCodeHandler::SourceCode
     }
 }
 
-void SourceCodeHandler::openFileInEditor(const SourceCodeHandler::SourceCodeEditors eEditor, const QString &szFilenameFullPath, const QString &szLine)
+GlobalConstants::ErrorCode SourceCodeHandler::openFileInEditor(const SourceCodeHandler::SourceCodeEditors eEditor, const QString &szFilenameFullPath, const QString &szLine)
 {
     QString szHandling = getEditorHandling(eEditor);
     szHandling.replace(szArgumentSourceFileName, szFilenameFullPath);
@@ -164,7 +163,12 @@ void SourceCodeHandler::openFileInEditor(const SourceCodeHandler::SourceCodeEdit
 
     int nResult = QProcess::execute(szCall);
 
-    qDebug() << nResult;
+    if (nResult < 0) {
+        return GlobalConstants::ERROR;
+
+    } else {
+        return GlobalConstants::SUCCESS;
+    }
 }
 
 QStringList SourceCodeHandler::initEditorNames()

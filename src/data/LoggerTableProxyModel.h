@@ -60,18 +60,21 @@ public:
     explicit LoggerTableProxyModel(QObject *parent = nullptr);
     ~LoggerTableProxyModel() override;
 
+    static int getLogSeverityFromName(const QString &szSeverity);
+
     void appendRow(const QString &szRowData, bool bAppendToRawData = true);
     void appendRows(const QStringList &szaRowsData, bool bAppendToRawData = true);
-
-    static QColor calculateColorForLevel(const QString &szLevel);
 
     QList<QAction *> *generateActionsForIndex(const QModelIndex &myModelIndex, QWidget *parent);
 
     void setFilterRegExp(const QRegExp &regExp);
     void setFilterRegExp(const QString &szPattern);
 
+    int getVisibleIndexForColumn(const LoggerEnum::Columns eColumn);
+    LoggerEnum::Columns getColumnForVisibleIndex(const int nIndex);
+
 protected:
-    static QString getColumnName(LoggerEnum::Columns column);
+    static QString getColumnName(const LoggerEnum::Columns eColumn);
     static void fillLoggerPatternElements();
     static void fillLoggerSeverityNames();
     QList<QStandardItem *> parseLogMessage(const QString &szRowData);
@@ -96,6 +99,7 @@ private:
     LoggerTableItemModel        *myItemModel;
     QString                     szLoggerPattern;
     QVector<int>                naLoggerPatternData;
+    QVector<int>                naColumnOrder;
     QMutex                      *myMutex;
 
     QStringList                 szaTableModelRaw;
@@ -117,11 +121,10 @@ public slots:
 
 signals:
     void clipboardParsingResult(bool bParsingResult);
-    void fileParsingResult(bool bParsingResult, const QString &szFilename = QStringLiteral(""));
+    void fileParsingResult(bool bParsingResult, const QString &szFilename = QLatin1String(""));
     void filterStateChanged(bool);
 
     void showNotification(const QString &szMessage, const ToastNotificationWidget::NotificationType eNotifType, const int nTimeoutMs);
 
 };
-
 

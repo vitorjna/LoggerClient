@@ -33,6 +33,7 @@ void OptionsWidget::setupUi()
     }
     myMainLayout->addWidget(labelThemeChoice,       nCurrentRow, 0);
     myMainLayout->addWidget(comboBoxThemeChoice,    nCurrentRow, 1);
+    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), 0, 2);
     ++nCurrentRow;
 
     QGroupBox *sourceCodeGroup = new QGroupBox(tr("Log Classes and Source Code"));
@@ -50,31 +51,31 @@ void OptionsWidget::setupUi()
         comboBoxSupportedLanguages->addItems(SourceCodeHandler::getSupportedLanguages());
 
         sourceCodeLayout->addWidget(sourceCodeTypeLabel,        0,  0);
-        sourceCodeLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding), 0, 1);
-        sourceCodeLayout->addWidget(comboBoxSupportedLanguages, 0,  2, 1, 2);
+        sourceCodeLayout->addWidget(comboBoxSupportedLanguages, 0,  1);
+        sourceCodeLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), 0, 2);
 
         //-------------------------------------------------
         QGroupBox *sourceCodeEditorGroup = new QGroupBox(tr("Editor to open"));
         QGridLayout *sourceCodeEditorLayout = new QGridLayout(sourceCodeEditorGroup);
         {
-            QLabel *sourceCodeEditorLabel = new QLabel(this);
-            sourceCodeEditorLabel->setText(tr("Application"));
-
             comboBoxCodeEditorNames = new QComboBox(this);
             comboBoxCodeEditorNames->addItems(SourceCodeHandler::getEditorNames());
-
-            sourceCodeEditorLayout->addWidget(sourceCodeEditorLabel,    0,  0);
-            sourceCodeEditorLayout->addWidget(comboBoxCodeEditorNames,  0,  1);
-
-            lineEditEditorLocation = new QLineEdit(this);
-            lineEditEditorLocation->setPlaceholderText(tr("Editor location"));
 
             lineEditEditorHandling = new QLineEdit(this);
             lineEditEditorHandling->setPlaceholderText(tr("Arguments to open application"));
             lineEditEditorHandling->setEnabled(false);
 
-            sourceCodeEditorLayout->addWidget(lineEditEditorLocation,   1,  0, 1, -1);
-            sourceCodeEditorLayout->addWidget(lineEditEditorHandling,   2,  0, 1, -1);
+            lineEditEditorLocation = new QLineEdit(this);
+            lineEditEditorLocation->setPlaceholderText(tr("Editor location"));
+            lineEditEditorLocation->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
+
+            pushButtonEditorLocationPick = new QPushButton(this);
+            pushButtonEditorLocationPick->setText(tr("Choose"));
+
+            sourceCodeEditorLayout->addWidget(comboBoxCodeEditorNames,      0, 0, 1, 2);
+            sourceCodeEditorLayout->addWidget(lineEditEditorHandling,       0, 2, 1, -1);
+            sourceCodeEditorLayout->addWidget(lineEditEditorLocation,       1, 0, 1, 4);
+            sourceCodeEditorLayout->addWidget(pushButtonEditorLocationPick, 1, 4, 1, -1);
         }
         sourceCodeLayout->addWidget(sourceCodeEditorGroup, 1, 0, 1, -1);
 
@@ -91,6 +92,9 @@ void OptionsWidget::setupUi()
 
             listWidgetSourceCodeLocations = new QListWidget(this);
             listWidgetSourceCodeLocations->addItems(SourceCodeHandler::getSourceCodeLocations());
+            listWidgetSourceCodeLocations->setAlternatingRowColors(true);
+            listWidgetSourceCodeLocations->setDragDropMode(QAbstractItemView::InternalMove);
+            listWidgetSourceCodeLocations->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
             sourceCodeLocationsLayout->addWidget(pushButtonSourceCodeLocationAdd,       0, 0);
             sourceCodeLocationsLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed), 0, 1);
@@ -136,8 +140,11 @@ void OptionsWidget::setupSignalsAndSlots()
     connect(comboBoxCodeEditorNames,    &QComboBox::currentTextChanged,
             this,                       &OptionsWidget::codeEditorSelectionChanged);
 
-    connect(lineEditEditorLocation,     &QLineEdit::textEdited,
+    connect(lineEditEditorLocation,     &QLineEdit::textChanged,
             this,                       &OptionsWidget::codeEditorLocationChanged);
+
+    connect(pushButtonEditorLocationPick,           &QPushButton::clicked,
+            this,                                   &OptionsWidget::buttonEditorLocationPickClicked);
 
     connect(pushButtonSourceCodeLocationAdd,        &QPushButton::clicked,
             this,                                   &OptionsWidget::buttonAddLocationClicked);
@@ -228,7 +235,32 @@ void OptionsWidget::codeEditorSelectionChanged(const QString &szNewEditor)
 
 void OptionsWidget::codeEditorLocationChanged(const QString &szNewLocation)
 {
-    SourceCodeHandler::setEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex()), szNewLocation);
+    bool bFileExists = QFile::exists(szNewLocation);
+
+    if (bFileExists == true) {
+        lineEditEditorLocation->setStyleSheet(QLatin1String(""));
+        SourceCodeHandler::setEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex()), szNewLocation);
+
+    } else {
+        lineEditEditorLocation->setStyleSheet(QStringLiteral("border: 1px solid red"));
+    }
+}
+
+void OptionsWidget::buttonEditorLocationPickClicked(bool bState)
+{
+    Q_UNUSED(bState)
+
+    QFileDialog *myFileDialog = new QFileDialog(this);
+    myFileDialog->setAcceptMode(QFileDialog::AcceptOpen);
+    myFileDialog->setFileMode(QFileDialog::ExistingFile);
+    myFileDialog->setFilter(QDir::Files | QDir::Executable);
+
+    myFileDialog->open(this, SLOT(buttonEditorLocationPickResult(QString)));
+}
+
+void OptionsWidget::buttonEditorLocationPickResult(const QString &szFile)
+{
+    lineEditEditorLocation->setText(szFile);
 }
 
 void OptionsWidget::buttonAddLocationClicked(bool bState)
@@ -238,6 +270,7 @@ void OptionsWidget::buttonAddLocationClicked(bool bState)
     QFileDialog *myFileDialog = new QFileDialog(this);
     myFileDialog->setAcceptMode(QFileDialog::AcceptOpen);
     myFileDialog->setFileMode(QFileDialog::Directory);
+    myFileDialog->setOption(QFileDialog::ShowDirsOnly, true);
 
     myFileDialog->open(this, SLOT(buttonAddLocationResult(QString)));
 }
@@ -253,7 +286,15 @@ void OptionsWidget::buttonRemoveLocationClicked(bool bState)
 {
     Q_UNUSED(bState)
 
-    delete listWidgetSourceCodeLocations->takeItem(listWidgetSourceCodeLocations->currentRow());
+    QList<QListWidgetItem *> mySelectedItems = listWidgetSourceCodeLocations->selectedItems();
+
+    for (QListWidgetItem *mySelectedItem : mySelectedItems) {
+        delete mySelectedItem;
+    }
+
+    if (listWidgetSourceCodeLocations->count() == 0) {
+        pushButtonSourceCodeLocationRemove->setEnabled(false);
+    }
 
     saveSourceCodeLocations();
 }
@@ -262,7 +303,14 @@ void OptionsWidget::sourceLocationsListItemChanged(int nCurrentItem)
 {
     Q_UNUSED(nCurrentItem)
 
-    pushButtonSourceCodeLocationRemove->setEnabled(true);
+    pushButtonSourceCodeLocationRemove->setEnabled(nCurrentItem != -1);
+}
+
+void OptionsWidget::hideEvent(QHideEvent *event)
+{
+    saveSourceCodeLocations(); //when source order is changed, the ListWidget doesn't emit a proper signal. So save the list when hiding/closing the window
+
+    QWidget::hideEvent(event);
 }
 
 void OptionsWidget::closeEvent(QCloseEvent *event)

@@ -129,7 +129,7 @@ endif()
 message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 if( CMAKE_BUILD_TYPE STREQUAL "Release" )
     set (CMAKE_CXX_FLAGS "${CXX_FLAGS_COMMON} -O3 -w")
-    add_definitions(-DQT_NO_DEBUG_OUTPUT)
+#    add_definitions(-DQT_NO_DEBUG_OUTPUT)
 
 elseif( CMAKE_BUILD_TYPE STREQUAL "Debug" )
     set (CMAKE_CXX_FLAGS "${CXX_FLAGS_COMMON} -O0 -g2 -w")

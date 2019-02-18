@@ -14,6 +14,6 @@ public:
 
     void addAction(QAction *myAction);
 
-    void addActions(QList<QAction *> myActionList);
+    void addActions(const QList<QAction *> *myActionList);
 
 };

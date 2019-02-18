@@ -4,7 +4,6 @@
 #include <QWidget>
 #include <QtNetwork>
 
-
 class NetworkUtils
 {
 public:

@@ -27,6 +27,11 @@ LoggerTableProxyModel::~LoggerTableProxyModel()
     MemoryUtils::deleteMutex(myMutex);
 }
 
+int LoggerTableProxyModel::getLogSeverityFromName(const QString &szSeverity)
+{
+    return szaLoggerSeverityNames.indexOf(szSeverity);
+}
+
 void LoggerTableProxyModel::appendRow(const QString &szRowData, bool bAppendToRawData)
 {
     const QString szRowDataTrim = szRowData.trimmed();
@@ -34,20 +39,16 @@ void LoggerTableProxyModel::appendRow(const QString &szRowData, bool bAppendToRa
     if (szLoggerPattern.isEmpty() == true) {
         myItemModel->appendRow(new QStandardItem(szRowDataTrim));
 
-        if (bAppendToRawData) {
-            szaTableModelRaw.append(szRowDataTrim);
-        }
-
     } else {
-        QList<QStandardItem *> myTableRow = parseLogMessage(szRowDataTrim);
+        QList<QStandardItem *> myTableRow = parseLogMessage(szRowData);
 
         if (myTableRow.isEmpty() == false) {
             myItemModel->appendRow(myTableRow);
-
-            if (bAppendToRawData) {
-                szaTableModelRaw.append(szRowDataTrim);
-            }
         }
+    }
+
+    if (bAppendToRawData) {
+        szaTableModelRaw.append(szRowDataTrim);
     }
 }
 
@@ -55,35 +56,6 @@ void LoggerTableProxyModel::appendRows(const QStringList &szaRowsData, bool bApp
 {
     for (const QString &szRowData : szaRowsData) {
         this->appendRow(szRowData, bAppendToRawData);
-    }
-}
-
-QColor LoggerTableProxyModel::calculateColorForLevel(const QString &szLevel)
-{
-//    static int nLevels = {0, 32, 64, 96, 128, 160, 192, 224, 255};
-
-    switch (static_cast<LoggerEnum::LoggerSeverity>(szaLoggerSeverityNames.indexOf(szLevel))) {
-        case LoggerEnum::TRACE:
-            return QColor(0, 64, 64, 192);
-
-        case LoggerEnum::DEBUG_L:
-            return QColor(0, 96, 96, 255);
-
-        case LoggerEnum::INFO:
-            return QColor(128, 128, 0, 192);
-
-        case LoggerEnum::WARNING:
-            return QColor(128, 128, 0, 255);
-
-        case LoggerEnum::ERROR_L:
-            return QColor(128, 0, 0, 192);
-
-        case LoggerEnum::FATAL:
-            return QColor(128, 0, 0, 255);
-
-        case LoggerEnum::NONE:
-        case LoggerEnum::COUNT_LOGGER_SEVERITY:
-            return QColor(Qt::gray);
     }
 }
 
@@ -95,7 +67,7 @@ QList<QAction *> *LoggerTableProxyModel::generateActionsForIndex(const QModelInd
 
     QList<QAction *> *myActionList = new QList<QAction *>();
 
-    switch (static_cast<LoggerEnum::Columns>(myModelIndex.column())) {
+    switch (getColumnForVisibleIndex(myModelIndex.column())) {
         case LoggerEnum::COLUMN_INDEX:
             break;
 
@@ -225,9 +197,19 @@ void LoggerTableProxyModel::setFilterRegExp(const QString &szPattern)
     QSortFilterProxyModel::setFilterRegExp(szPattern);
 }
 
-QString LoggerTableProxyModel::getColumnName(LoggerEnum::Columns column)
+int LoggerTableProxyModel::getVisibleIndexForColumn(const LoggerEnum::Columns eColumn)
 {
-    switch (column) {
+    return naColumnOrder.indexOf(eColumn);
+}
+
+LoggerEnum::Columns LoggerTableProxyModel::getColumnForVisibleIndex(const int nIndex)
+{
+    return static_cast<LoggerEnum::Columns>(naColumnOrder.at(nIndex));
+}
+
+QString LoggerTableProxyModel::getColumnName(const LoggerEnum::Columns eColumn)
+{
+    switch (eColumn) {
         case LoggerEnum::COLUMN_INDEX:
             return QStringLiteral("#");
 
@@ -295,7 +277,8 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
     bool bContinueFromLast = true;
 
     for (int nIndex = 0; nIndex < LoggerEnum::COUNT_LOGGER_SEVERITY; ++nIndex) {
-        if (szRowData.contains(QRegExp("\\b" + szaLoggerSeverityNames.at(nIndex) + "\\b", Qt::CaseSensitive)) == true) {
+        //replaced contains of Regex (\b + Level + \b) with just QString. May have false positives, but performance: 63 to 34ms, for the same workload
+        if (szRowData.contains(szaLoggerSeverityNames.at(nIndex), Qt::CaseSensitive) == true) {
             bContinueFromLast = false; //one of the levels exists, create new entry
             break;
         }
@@ -312,14 +295,6 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
         myTableRow.append(new QStandardItem(QString::number(myItemModel->rowCount() + 1) + "*"));
 
         for (int nIndex = 1; nIndex < LoggerEnum::COLUMN_MESSAGE; ++nIndex) {
-//            if (nIndex == LoggerEnum::COLUMN_TIMESTAMP
-//                || nIndex == LoggerEnum::COLUMN_SEVERITY
-//                || nIndex == LoggerEnum::COLUMN_THREADID) {
-
-//                tableRow->append(new QStandardItem(QLatin1String("")));
-//                continue;
-//            }
-
             QStandardItem *myPreviousItem = myItemModel->item(nPreviousRow, nIndex);
 
             if (myPreviousItem != nullptr) {
@@ -328,7 +303,7 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
             }
         }
 
-        myTableRow.append(new QStandardItem(szRowData.trimmed()));
+        myTableRow.append(new QStandardItem(szRowData));
         return myTableRow;
 
     } else {
@@ -342,11 +317,11 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
 
         for (int nIndex = 0; nIndex < naLoggerPatternData.size(); nIndex += 3) {
 
-            int nCurrentPattern = naLoggerPatternData.at(nIndex);
+            LoggerEnum::LoggerPattern nCurrentPattern = static_cast<LoggerEnum::LoggerPattern>(naLoggerPatternData.at(nIndex));
             int nStartOffset = naLoggerPatternData.at(nIndex + 1);
 
             if (naLoggerPatternData.at(nIndex + 2) == -1) { //last element
-                myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex + nStartOffset).trimmed()));
+                myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex + nStartOffset).trimmed().toString()));
 
             } else {
 
@@ -354,43 +329,46 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
 //                cEndSeparator = ' ';
                 nDataStartIndex += nStartOffset;
 
-                while (szRowData.at(nDataStartIndex).isSpace()) { //NOTE only needed when parsing clipboard or file, because of extra spaces between "columns"
-                    ++nDataStartIndex;
-                }
+//                while (szRowData.at(nDataStartIndex).isSpace()) { //NOTE only needed when parsing clipboard or file, because of extra spaces between "columns"
+//                    ++nDataStartIndex;
+//                }
 
                 switch (nCurrentPattern) {
                     case LoggerEnum::PATTERN_TIMESTAMP: {
                         //TODO place date and time in different columns
                         nDataEndIndex = getEndIndexTimestamp(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_THREADID: {
                         nDataEndIndex = getEndIndexThreadId(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_SEVERITY: {
                         nDataEndIndex = getEndIndexSeverity(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_CLASS: {
                         //TODO place line number in another column
                         nDataEndIndex = getEndIndexClass(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_MESSAGE: {
                         nDataEndIndex = getEndIndexMessage(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
                         break;
                     }
 
+                    case LoggerEnum::COUNT_LOGGER_PATTERN:
+                    default:
+                        break;
                 }
             }
 
@@ -434,23 +412,24 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
 
 void LoggerTableProxyModel::createNewItemModel(bool bSetAsModel)
 {
+    QMutexLocker myScopedMutex(myMutex);
+
     if (myItemModel != nullptr) {
         myItemModel->deleteLater();
     }
 
-    myItemModel = new LoggerTableItemModel(this);
+    myItemModel = new LoggerTableItemModel(this, this);
 
-    if (szLoggerPattern.isEmpty() == true) {
+    if (naColumnOrder.isEmpty() == true) {
         myItemModel->setHeaderData(0, Qt::Horizontal, "Log entry", Qt::DisplayRole);
 
     } else {
-        myItemModel->setColumnCount(LoggerEnum::COUNT_TABLE_COLUMNS); //first column is the log number
+        myItemModel->setColumnCount(naColumnOrder.size()); //first column is the log number
 
-        //TODO use this "for" in the currently enabled columns (method to be implemented)
-        for (int nIndex = 0; nIndex < LoggerEnum::COUNT_TABLE_COLUMNS; ++nIndex) {
+        for (int nIndex = 0; nIndex < naColumnOrder.size(); ++nIndex) {
             myItemModel->setHeaderData(nIndex,
                                        Qt::Horizontal,
-                                       getColumnName(static_cast<LoggerEnum::Columns>(nIndex)),
+                                       getColumnName(static_cast<LoggerEnum::Columns>(naColumnOrder.at(nIndex))),
                                        Qt::DisplayRole);
         }
     }
@@ -469,6 +448,8 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
     /// 3-char of the end separator for the pattern in 1. For the last group, this char is -1 (to the end of the message)
 
     naLoggerPatternData.clear();
+    naColumnOrder.clear();
+    naColumnOrder.append(LoggerEnum::COLUMN_INDEX);
 
     bool bLastSegment = false;
 
@@ -489,7 +470,39 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
 
             if (cPatternChar == '%') {
                 szCurrentPattern = szLoggerPattern.mid(nPatternIndex, 2);
-                naLoggerPatternData.append(szaLoggerPatternElements.indexOf(szCurrentPattern));     //1
+
+                LoggerEnum::LoggerPattern ePattern = static_cast<LoggerEnum::LoggerPattern>(szaLoggerPatternElements.indexOf(szCurrentPattern));
+
+                //in case a pattern occupies more than 1 column (Class:Line could be separated)
+                switch (ePattern) {
+                    case LoggerEnum::PATTERN_TIMESTAMP:
+                        naColumnOrder.append(LoggerEnum::COLUMN_TIMESTAMP);
+                        break;
+
+                    case LoggerEnum::PATTERN_CLASS:
+                        naColumnOrder.append(LoggerEnum::COLUMN_CLASS);
+                        break;
+
+                    case LoggerEnum::PATTERN_SEVERITY:
+                        naColumnOrder.append(LoggerEnum::COLUMN_SEVERITY);
+                        break;
+
+                    case LoggerEnum::PATTERN_MESSAGE:
+                        naColumnOrder.append(LoggerEnum::COLUMN_MESSAGE);
+                        break;
+
+                    case LoggerEnum::PATTERN_THREADID:
+                        naColumnOrder.append(LoggerEnum::COLUMN_THREADID);
+                        break;
+
+                    case LoggerEnum::COUNT_LOGGER_PATTERN:
+                    default:
+                        break;
+
+                }
+
+                naLoggerPatternData.append(ePattern);     //1
+
                 ++nPatternIndex;
                 break;
 
@@ -593,8 +606,6 @@ int LoggerTableProxyModel::getEndIndexTimestamp(const QString &szRowData, int nS
 
 void LoggerTableProxyModel::clear()
 {
-    QMutexLocker myScopedMutex(myMutex);
-
     createNewItemModel(true);
 
     setFilterRegExp(QRegExp());
@@ -633,6 +644,8 @@ void LoggerTableProxyModel::parseFile(const QString &szFilename)
 
 void LoggerTableProxyModel::parseClipboard()
 {
+    TimeUtils::startTimer();
+
     createNewItemModel(); //this way is faster: create a new model, insert every row, and set as model in the end
 
     QString szClipboardData = QApplication::clipboard()->text();
@@ -646,6 +659,8 @@ void LoggerTableProxyModel::parseClipboard()
     }
 
     this->setSourceModel(myItemModel);
+
+    TimeUtils::printTimeMilliseconds();
 
     if (myItemModel->rowCount() == 0) {
         emit clipboardParsingResult(false);
@@ -734,7 +749,7 @@ void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
         while (myDirIterator.hasNext()) {
 
             QString szCurrent = myDirIterator.next();
-            qDebug() << szCurrent;
+//            qDebug() << szCurrent;
 
             if (szCurrent.endsWith('/' + szClassName + szFileExtension) == true) {
                 szFilenameFullPath = szCurrent;
@@ -748,9 +763,14 @@ void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
         emit showNotification(tr("No source file found"), ToastNotificationWidget::ERROR, 2000);
 
     } else {
-        SourceCodeHandler::openFileInEditor(SourceCodeHandler::getCurrentEditor(), szFilenameFullPath, szLineNumber);
+        GlobalConstants::ErrorCode eResult = SourceCodeHandler::openFileInEditor(SourceCodeHandler::getCurrentEditor(), szFilenameFullPath, szLineNumber);
 
-        emit showNotification(tr("File opened: ") + szFilenameFullPath, ToastNotificationWidget::SUCCESS, 2000);
+        if (eResult == GlobalConstants::SUCCESS) {
+            emit showNotification(tr("Opened file\n") + szFilenameFullPath + tr("\nin editor ") + SourceCodeHandler::getCurrentEditorName(), ToastNotificationWidget::SUCCESS, 2000);
+
+        } else {
+            emit showNotification(tr("Error opening file\n") + szFilenameFullPath + tr("\nin editor ") + SourceCodeHandler::getCurrentEditorName(), ToastNotificationWidget::ERROR, 3000);
+        }
     }
 }
 

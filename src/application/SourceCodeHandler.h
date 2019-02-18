@@ -1,9 +1,11 @@
 #pragma once
 
 #include <QList>
-#include <QString>
 #include <QProcess>
+#include <QString>
 #include <QStringList>
+
+#include "application/GlobalConstants.h"
 
 class SourceCodeHandler
 {
@@ -47,7 +49,7 @@ public:
 
     static QString getEditorHandling(const SourceCodeEditors eEditor);
 
-    static void openFileInEditor(const SourceCodeEditors eEditor, const QString &szFilenameFullPath, const QString &szLine);
+    static GlobalConstants::ErrorCode openFileInEditor(const SourceCodeEditors eEditor, const QString &szFilenameFullPath, const QString &szLine);
 
 private:
     static const QString szArgumentSourceFileName;
