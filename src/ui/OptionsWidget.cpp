@@ -23,18 +23,49 @@ void OptionsWidget::setupUi()
     QGridLayout *myMainLayout = new QGridLayout(this);
     myMainLayout->setContentsMargins(10, 10, 10, 10);
     myMainLayout->setSpacing(20);
-    {
-        labelThemeChoice = new QLabel(tr("Theme"), this);
 
+    QGroupBox *uiSettingsGroup = new QGroupBox(tr("UI Settings"));
+    uiSettingsGroup->setFlat(true);
+//    sourceCodeGroup->setStyleSheet("border-left:0;border-bottom:0;border-right:0;");
+
+    QGridLayout *uiSettingsLayout = new QGridLayout(uiSettingsGroup);
+    {
+        labelThemeChoice    = new QLabel(tr("Theme"), this);
         comboBoxThemeChoice = new QComboBox(this);
         comboBoxThemeChoice->addItems(loadThemeChoices());
 
-//        mySearchTextLayout->addWidget(pushButtonNextResult);
+        labelFontSize   = new QLabel(tr("Font size"), this);
+        spinBoxFontSize = new QSpinBox(this);
+        spinBoxFontSize->setRange(5, 18);
+
+        labelRowHeightBias   = new QLabel(tr("Row height bias"), this);
+        spinBoxRowHeightBias = new QSpinBox(this);
+        spinBoxRowHeightBias->setRange(-5, 5);
+
+        uiSettingsLayout->addWidget(labelThemeChoice,       0, 0);
+        uiSettingsLayout->addWidget(comboBoxThemeChoice,    0, 1);
+        uiSettingsLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), 0, 2);
+
+        uiSettingsLayout->addWidget(labelFontSize,          1, 0);
+        uiSettingsLayout->addWidget(spinBoxFontSize,        1, 1);
+        uiSettingsLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), 1, 2);
+        uiSettingsLayout->addWidget(labelRowHeightBias,     1, 3);
+        uiSettingsLayout->addWidget(spinBoxRowHeightBias,   1, 4);
     }
-    myMainLayout->addWidget(labelThemeChoice,       nCurrentRow, 0);
-    myMainLayout->addWidget(comboBoxThemeChoice,    nCurrentRow, 1);
-    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), 0, 2);
+    myMainLayout->addWidget(uiSettingsGroup, nCurrentRow, 0, 1, -1);
     ++nCurrentRow;
+
+
+    {
+        labelFormatExportedLogs = new QLabel(tr("Format exported logs"), this);
+
+        checkBoxFormatExportedLogs = new QCheckBox(this);
+    }
+    myMainLayout->addWidget(labelFormatExportedLogs,    nCurrentRow, 0);
+    myMainLayout->addWidget(checkBoxFormatExportedLogs, nCurrentRow, 1);
+    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), nCurrentRow, 2);
+    ++nCurrentRow;
+
 
     QGroupBox *sourceCodeGroup = new QGroupBox(tr("Log Classes and Source Code"));
     sourceCodeGroup->setFlat(true);
@@ -104,7 +135,7 @@ void OptionsWidget::setupUi()
         sourceCodeLayout->addWidget(sourceCodeLocationsGroup,  2,  0, 1, -1);
 
     }
-    myMainLayout->addWidget(sourceCodeGroup,        nCurrentRow, 0, 1, -1);
+    myMainLayout->addWidget(sourceCodeGroup, nCurrentRow, 0, 1, -1);
     ++nCurrentRow;
 
     myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Fixed, QSizePolicy::Expanding), nCurrentRow, 0);
@@ -113,7 +144,7 @@ void OptionsWidget::setupUi()
     buttonBoxCloseWindow = new QDialogButtonBox(this);
     buttonBoxCloseWindow->setStandardButtons(QDialogButtonBox::Close);
 
-    myMainLayout->addWidget(buttonBoxCloseWindow,   nCurrentRow, 0, 1, -1, Qt::AlignRight);
+    myMainLayout->addWidget(buttonBoxCloseWindow, nCurrentRow, 0, 1, -1, Qt::AlignRight);
 
 
     this->setLayout(myMainLayout);
@@ -128,20 +159,26 @@ void OptionsWidget::setupUi()
 
 void OptionsWidget::setupSignalsAndSlots()
 {
-    connect(comboBoxThemeChoice,        &QComboBox::currentTextChanged,
-            this,                       &OptionsWidget::themeSelectionChanged);
+    connect(comboBoxThemeChoice,                    &QComboBox::currentTextChanged,
+            this,                                   &OptionsWidget::themeSelectionChanged);
 
-    connect(buttonBoxCloseWindow,       &QDialogButtonBox::rejected,
-            this,                       &OptionsWidget::close);
+    connect(spinBoxFontSize,                        static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), //there is an overload and the lambda connection cannot disambiguate
+            this,                                   &OptionsWidget::fontSizeChangedSlot);
 
-    connect(comboBoxSupportedLanguages, &QComboBox::currentTextChanged,
-            this,                       &OptionsWidget::codeEditorLanguageChanged);
+    connect(spinBoxRowHeightBias,                   static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), //there is an overload and the lambda connection cannot disambiguate
+            this,                                   &OptionsWidget::rowHeightBiasChangedSlot);
 
-    connect(comboBoxCodeEditorNames,    &QComboBox::currentTextChanged,
-            this,                       &OptionsWidget::codeEditorSelectionChanged);
+    connect(checkBoxFormatExportedLogs,             &QCheckBox::stateChanged,
+            this,                                   &OptionsWidget::formatExportedLogsChanged);
 
-    connect(lineEditEditorLocation,     &QLineEdit::textChanged,
-            this,                       &OptionsWidget::codeEditorLocationChanged);
+    connect(comboBoxSupportedLanguages,             &QComboBox::currentTextChanged,
+            this,                                   &OptionsWidget::codeEditorLanguageChanged);
+
+    connect(comboBoxCodeEditorNames,                &QComboBox::currentTextChanged,
+            this,                                   &OptionsWidget::codeEditorSelectionChanged);
+
+    connect(lineEditEditorLocation,                 &QLineEdit::textChanged,
+            this,                                   &OptionsWidget::codeEditorLocationChanged);
 
     connect(pushButtonEditorLocationPick,           &QPushButton::clicked,
             this,                                   &OptionsWidget::buttonEditorLocationPickClicked);
@@ -154,12 +191,24 @@ void OptionsWidget::setupSignalsAndSlots()
 
     connect(listWidgetSourceCodeLocations,          &QListWidget::currentRowChanged,
             this,                                   &OptionsWidget::sourceLocationsListItemChanged);
+
+    connect(buttonBoxCloseWindow,                   &QDialogButtonBox::rejected,
+            this,                                   &OptionsWidget::close);
 }
 
 void OptionsWidget::loadSettings()
 {
     QString szThemeSelected = AppSettings::getValue(AppSettings::KEY_THEME_NAME, GlobalConstants::SETTINGS_THEME_DEFAULT).toString();
     comboBoxThemeChoice->setCurrentText(szThemeSelected);
+
+    int nFontSize = AppSettings::getValue(AppSettings::KEY_FONT_SIZE, 8).toInt();
+    spinBoxFontSize->setValue(nFontSize);
+
+    int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
+    spinBoxRowHeightBias->setValue(nRowBias);
+
+    bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, true).toBool();
+    checkBoxFormatExportedLogs->setChecked(bFormatExportedLogs);
 
     QString szCodeLanguage = SourceCodeHandler::getCurrentLanguage();
     comboBoxSupportedLanguages->setCurrentText(szCodeLanguage);
@@ -218,6 +267,41 @@ void OptionsWidget::themeSelectionChanged(const QString &szNewTheme)
     }
 
     AppSettings::setValue(AppSettings::KEY_THEME_NAME, szNewTheme);
+}
+
+void OptionsWidget::fontSizeChangedSlot(const int nValue)
+{
+    AppSettings::setValue(AppSettings::KEY_FONT_SIZE, nValue);
+
+    QFont myAppFont = qApp->font();
+    myAppFont.setPointSize(nValue);
+
+    qApp->setFont(myAppFont);
+    qApp->setStyleSheet(qApp->styleSheet()); //force a complete refresh
+
+    emit fontSizeChanged(nValue);
+}
+
+void OptionsWidget::rowHeightBiasChangedSlot(const int nValue)
+{
+    emit rowHeightBiasChanged(nValue);
+
+    AppSettings::setValue(AppSettings::KEY_ROW_HEIGHT_BIAS, nValue);
+}
+
+void OptionsWidget::formatExportedLogsChanged(const int nState)
+{
+    switch (static_cast<Qt::CheckState>(nState)) {
+        case Qt::Unchecked:
+        case Qt::PartiallyChecked:
+            AppSettings::setValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, false);
+            AppSettings::setValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, false);
+            break;
+
+        case Qt::Checked:
+            AppSettings::setValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, true);
+            break;
+    }
 }
 
 void OptionsWidget::codeEditorLanguageChanged(const QString &szNewLanguage)

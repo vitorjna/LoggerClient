@@ -144,7 +144,7 @@ QString SourceCodeHandler::getEditorHandling(const SourceCodeHandler::SourceCode
             return QStringLiteral("--launcher.openFile ") + szArgumentSourceFileName + ':' + szArgumentSourceFileLine;
 
         case SourceCodeHandler::IngeDev:
-            return QLatin1String("");
+            return QStringLiteral("--launcher.openFile ") + szArgumentSourceFileName + ':' + szArgumentSourceFileLine;
 
         case SourceCodeHandler::COUNT_SOURCE_CODE_EDITORS:
             return QLatin1String("");
@@ -225,7 +225,7 @@ QString SourceCodeHandler::getEditorLocationDefault(const SourceCodeHandler::Sou
 {
     switch (eEditor) {
         case SourceCodeHandler::QtCreator:
-            return QStringLiteral("C:\\Qt\\Tools\\QtCreator\\bin\\qtcreator");
+            return QStringLiteral("C:\\Qt\\Tools\\QtCreator\\bin\\qtcreator.exe");
 
         case SourceCodeHandler::Eclipse:
             return QLatin1String("");

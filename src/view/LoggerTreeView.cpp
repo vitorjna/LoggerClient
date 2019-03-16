@@ -1,8 +1,9 @@
 #include "LoggerTreeView.h"
+#include "application/AppSettings.h"
 #include "application/GlobalConstants.h"
 
 LoggerTreeView::LoggerTreeView(QWidget *parent)
-    : QTreeView(parent)
+    : QTableView(parent)
 {
 }
 
@@ -25,13 +26,19 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
         ++nLeft; //TODO use a check by name/visibility
     }
 
+
+    bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, true).toBool();
+
     QVector<int> naMaxSizes;
-    naMaxSizes.reserve(nRight - nLeft);
 
-    for (int nCol = nLeft; nCol <= nRight; ++nCol) {
-        int nMaxSize = getColumnMaxWidth(nCol, nTop, nBottom);
+    if (bFormatExportedLogs == true) {
+        naMaxSizes.reserve(nRight - nLeft);
 
-        naMaxSizes.push_back(nMaxSize + (nMaxSize % 4) + 1); //round to the next multiple of 4
+        for (int nCol = nLeft; nCol <= nRight; ++nCol) {
+            int nMaxSize = getColumnMaxWidth(nCol, nTop, nBottom);
+
+            naMaxSizes.push_back(nMaxSize + (nMaxSize % 4) + 1); //round to the next multiple of 4
+        }
     }
 
     QStringList szSelectionContents;
@@ -48,7 +55,12 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
                 szRowContents.append(szCellValue); //for the last column, no need to indent
 
             } else {
-                szRowContents.append(szCellValue.leftJustified(naMaxSizes.at(nCol - nLeft), GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN)); //using spaces as separator. Using \t would change the message structure
+                if (bFormatExportedLogs == true) {
+                    szRowContents.append(szCellValue.leftJustified(naMaxSizes.at(nCol - nLeft), GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN)); //using spaces as separator. Using \t would change the message structure
+
+                } else {
+                    szRowContents.append(szCellValue + GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN);
+                }
             }
         }
 
@@ -111,7 +123,7 @@ void LoggerTreeView::keyPressEvent(QKeyEvent *myKeyEvent)
         QApplication::clipboard()->setText(szText);
 
     } else {
-        QTreeView::keyPressEvent(myKeyEvent);
+        QTableView::keyPressEvent(myKeyEvent);
     }
 
 }

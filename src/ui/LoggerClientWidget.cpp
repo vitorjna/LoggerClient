@@ -1,6 +1,5 @@
 #include "LoggerClientWidget.h"
 #include "application/AppSettings.h"
-#include "application/GlobalConstants.h"
 #include "data/LoggerTableProxyModel.h"
 #include "network/ChannelSocketClient.h"
 #include "ui/NetworkConnectionWidget.h"
@@ -13,9 +12,12 @@
 #include "util/TimeUtils.h"
 #include "view/LoggerTreeView.h"
 
-//TODO Filter by one column. Then filter by other column, Clear Table button becomes disabled
+//TODO Bug: filter by one column. Then filter by other column, Clear Table button becomes disabled
 //TODO add option to color by thread
 //TODO bug when parsing clipboard or file, end separator is always ' ', and not '[' as it is in the pattern
+//TODO class filter and text search are mutually exclusive. Both act on setFilterRegExp
+//TODO pattern: parse only when pressing return or losing focus
+//TODO pattern: add window for managing patterns
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
@@ -24,7 +26,7 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     , bOpenFileAfterSavingPending(false)
     , bIsAtBottom(true)
     , myMutex(new QMutex(QMutex::NonRecursive))
-    , myOptionsWidget(new OptionsWidget(this))
+    , myOptionsWidget(new OptionsWidget(this)) //loads current settings on construction. Should load when calling method, but it's good enough for now
 {
 #ifdef DEBUG_STUFF
 //    initDebugFocusChanged();
@@ -114,12 +116,16 @@ void LoggerClientWidget::setupUI()
 
             myOptionsLayout->addWidget(labelLoggerPattern);
             myOptionsLayout->addWidget(comboBoxLoggerPattern);
-            myOptionsLayout->addSpacing(20);
+            myOptionsLayout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed));
 
             //other options
             {
                 //TODO put these buttons on different places
                 //TODO place filter in search box so it can be edited
+                pushButtonResizeColumns = new QPushButton(this);
+                pushButtonResizeColumns->setText(tr("Resize"));
+                pushButtonResizeColumns->setEnabled(false);
+
                 pushButtonClearFilter = new QPushButton(this);
                 pushButtonClearFilter->setText(tr("Clear filter"));
                 pushButtonClearFilter->setEnabled(false);
@@ -153,8 +159,9 @@ void LoggerClientWidget::setupUI()
                 pushButtonOptions->setText(QStringLiteral("Options"));
             }
 
-            myOptionsLayout->addWidget(pushButtonClearFilter);
+            myOptionsLayout->addWidget(pushButtonResizeColumns);
             myOptionsLayout->addSpacing(10);
+            myOptionsLayout->addWidget(pushButtonClearFilter);
             myOptionsLayout->addWidget(pushButtonClearTable);
             myOptionsLayout->addWidget(pushButtonSaveToFile);
             myOptionsLayout->addSpacing(10);
@@ -173,16 +180,22 @@ void LoggerClientWidget::setupUI()
             myTableView = new LoggerTreeView(this);
             myTableView->setAlternatingRowColors(false);
             myTableView->setModel(myProxyModel);
-            myTableView->setRootIsDecorated(false);
+//            myTableView->setRootIsDecorated(false);
             myTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
             myTableView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
             myTableView->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
             myTableView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
             myTableView->setSortingEnabled(false);
-            myTableView->header()->setSectionResizeMode(QHeaderView::Interactive);
+            myTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+            myTableView->horizontalHeader()->setHighlightSections(false);
+            myTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+            myTableView->verticalHeader()->setVisible(false);
+            myTableView->setShowGrid(false);
             myTableView->setContextMenuPolicy(Qt::CustomContextMenu);
-            myTableView->setUniformRowHeights(true); //much performance
+//            myTableView->setUniformRowHeights(true); //much performance for QTreeView
             myTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+            myTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+            myTableView->setWordWrap(false);
         }
         myMainLayout->addWidget(myTableView, INT_MAX);
 
@@ -208,8 +221,8 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(myChannelSocketClient,      SIGNAL(connectionSuccess(QString)),
             this,                       SLOT(connectionSuccess(QString)));
 
-    connect(myChannelSocketClient,      SIGNAL(newMessageReceived(QString)),
-            this,                       SLOT(newMessageReceived(QString)));
+//    connect(myChannelSocketClient,      SIGNAL(newMessageReceived(QString)),
+//            this,                       SLOT(newMessageReceived(QString)));
 
     connect(myChannelSocketClient,      SIGNAL(newMessageReceived(QString)),
             myProxyModel,               SLOT(newMessageReceived(QString)));
@@ -268,17 +281,20 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(this,                       SIGNAL(loggerPatternChanged(QString)),
             myProxyModel,               SLOT(setLoggerPattern(QString)));
 
-    connect(myTableView->header(),      SIGNAL(sectionResized(int, int, int)),
+    connect(myTableView->horizontalHeader(), SIGNAL(sectionResized(int, int, int)),
             this,                       SLOT(tableViewHeaderResized(int, int, int)));
 
     connect(myTableView,                SIGNAL(customContextMenuRequested(QPoint)),
             this,                       SLOT(customContextMenuRequestedOnTableView(QPoint)));
 
-    connect(pushButtonClearTable,       SIGNAL(clicked(bool)),
-            this,                       SLOT(buttonClickedClearTable(bool)));
+    connect(pushButtonResizeColumns,    &QPushButton::clicked,
+            pushButtonOptions,          [ = ] { myTableView->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents); });
 
     connect(pushButtonClearFilter,      SIGNAL(clicked(bool)),
             this,                       SLOT(buttonClickedClearFilter(bool)));
+
+    connect(pushButtonClearTable,       SIGNAL(clicked(bool)),
+            this,                       SLOT(buttonClickedClearTable(bool)));
 
     //OPTIONS
     connect(pushButtonOptions,          &QPushButton::toggled,
@@ -286,6 +302,12 @@ void LoggerClientWidget::setupSignalsAndSlots()
 
     connect(myOptionsWidget,            &OptionsWidget::aboutToHide,
             pushButtonOptions,          [ = ] { pushButtonOptions->setChecked(false); });
+
+    connect(myOptionsWidget,            &OptionsWidget::fontSizeChanged,
+            this,                       &LoggerClientWidget::fontSizeChanged);
+
+    connect(myOptionsWidget,            &OptionsWidget::rowHeightBiasChanged,
+            this,                       &LoggerClientWidget::rowHeightBiasChanged);
 
     //SEARCH
     connect(mySearchWidget,             SIGNAL(searchTextChanged(QString)),
@@ -345,6 +367,9 @@ void LoggerClientWidget::loadSettings()
     comboBoxLoggerPattern->addItems(szaLoggerPatterns);
 
     emit loggerPatternChanged(szaLoggerPatterns.first());
+
+    int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
+    rowHeightBiasChanged(nRowBias);
 }
 
 void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &szText)
@@ -465,10 +490,12 @@ void LoggerClientWidget::selectFocus()
 void LoggerClientWidget::updateButtonsRowCountDependent(LogMode eNewMode)
 {
     if (myProxyModel->rowCount() == 0) {
+        pushButtonResizeColumns->setEnabled(false);
         pushButtonSaveToFile->setEnabled(false);
         pushButtonClearTable->setEnabled(false);
 
     } else {
+        pushButtonResizeColumns->setEnabled(true);
         pushButtonSaveToFile->setEnabled(true);
 
         if (eNewMode == COUNT_LOG_MODE) {
@@ -498,14 +525,13 @@ void LoggerClientWidget::updateButtonsRowCountDependent(LogMode eNewMode)
                 }
 
                 pushButtonClearTable->setEnabled(true);
-
                 break;
         }
     }
 
 }
 
-void LoggerClientWidget::checkResizeColumns(bool bIgnoreRowCount)
+void LoggerClientWidget::resizeColumnsIfNeeded(bool bIgnoreRowCount)
 {
     if (bUsingCustomColumnWidth == true) {
         return;
@@ -513,7 +539,7 @@ void LoggerClientWidget::checkResizeColumns(bool bIgnoreRowCount)
     } else if (bIgnoreRowCount == true
                || myTableView->model()->rowCount() == 1) {
 
-        myTableView->header()->resizeSections(QHeaderView::ResizeToContents); //don't do this very often, for performance reasons
+        myTableView->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents); //don't do this very often, for performance reasons
     }
 }
 
@@ -608,11 +634,11 @@ void LoggerClientWidget::buttonOpenFileResult(const QString &szFilename)
     emit parseFile(szFilename);
 }
 
-void LoggerClientWidget::fileParsingResult(bool bParsingResult, const QString &szFilename)
+void LoggerClientWidget::fileParsingResult(const int nResult, const QString &szFilename)
 {
-    if (bParsingResult == true) {
+    if (nResult == GlobalConstants::SUCCESS) {
         setLogWidgetMode(FILE, szFilename);
-        checkResizeColumns(true);
+        resizeColumnsIfNeeded(true);
 
     } else {
         setLogWidgetMode(EMPTY);
@@ -626,11 +652,13 @@ void LoggerClientWidget::pasteText()
     emit parseClipboard();
 }
 
-void LoggerClientWidget::clipboardParsingResult(bool bParsingResult)
+void LoggerClientWidget::clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult)
 {
-    if (bParsingResult == true) {
+//    TimeUtils::printTimeMilliseconds();
+
+    if (eParsingResult == GlobalConstants::SUCCESS) {
         setLogWidgetMode(CLIPBOARD);
-        checkResizeColumns(true);
+        resizeColumnsIfNeeded(true);
         updateButtonsRowCountDependent();
 
     } else {
@@ -670,7 +698,7 @@ void LoggerClientWidget::rowsInsertedInModel(const QModelIndex &parent, int firs
 
     if (first % 100 == 0) {
         updateButtonsRowCountDependent();
-        checkResizeColumns();
+        resizeColumnsIfNeeded();
     }
 }
 
@@ -838,6 +866,8 @@ void LoggerClientWidget::connectionError(int nSocketError, const QString &szErro
     qDebug() << __FUNCTION__ << nSocketError << szError;
 
     setLogWidgetMode(SERVER_RETRYING);
+
+    myProxyModel->resetIndex();
 }
 
 void LoggerClientWidget::connectionInProgress()
@@ -877,6 +907,24 @@ void LoggerClientWidget::tableViewHeaderResized(int logicalIndex, int oldSize, i
     if (myProxyModel->rowCount() != 0) {
         bUsingCustomColumnWidth = true;
     }
+}
+
+void LoggerClientWidget::fontSizeChanged(const int nValue)
+{
+    Q_UNUSED(nValue)
+
+    rowHeightBiasChanged(); //row height depends on font size
+}
+
+void LoggerClientWidget::rowHeightBiasChanged(int nValue)
+{
+    if (nValue == INT_MAX) {
+        nValue = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt(); //reading current value from verticalHeader doesn't work
+    }
+
+    myTableView->verticalHeader()->setMinimumSectionSize(myTableView->fontMetrics().height() + 4 + nValue * 2);
+    myTableView->verticalHeader()->setDefaultSectionSize(myTableView->verticalHeader()->minimumSectionSize());
+    myTableView->verticalHeader()->setMaximumSectionSize(myTableView->verticalHeader()->minimumSectionSize());
 }
 
 void LoggerClientWidget::dragEnterEvent(QDragEnterEvent *myDragEvent)

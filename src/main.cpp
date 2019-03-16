@@ -9,6 +9,7 @@
 #include <QDebug>
 
 #include "tests.h"
+#include "application/GlobalConstants.h"
 #include "ui/LoggerClientWidget.h"
 #include "ui/ToastNotificationWidget.h"
 
@@ -28,6 +29,7 @@ void __cxa_pure_virtual(void)
 
 void registerMetatypes()
 {
+    qRegisterMetaType<GlobalConstants::ErrorCode>("GlobalConstants::ErrorCode");
     qRegisterMetaType<QAbstractSocket::SocketError>("QAbstractSocket::SocketError");
     qRegisterMetaType<QAbstractSocket::SocketState>("QAbstractSocket::SocketState");
     qRegisterMetaType<ToastNotificationWidget::NotificationType>("ToastNotificationWidget::NotificationType");

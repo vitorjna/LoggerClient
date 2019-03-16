@@ -11,7 +11,10 @@ void ToastNotificationWidget::showMessage(QWidget *myContainer, const QString &s
     myWidget->labelMessage->setText(szMessage);
     myWidget->adjustSize();
 
-    myWidget->move(myContainer->mapToGlobal(myContainer->rect().center()) - QPoint(nWidgetWidth / 2, nWidgetHeight / 2));
+    if (myContainer != nullptr) {
+        myWidget->move(myContainer->mapToGlobal(myContainer->rect().center()) - myWidget->rect().center());
+    }
+
     myWidget->show();
 
     if (nTimeoutMs != -1) {

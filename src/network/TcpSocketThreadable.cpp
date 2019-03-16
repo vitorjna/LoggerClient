@@ -31,7 +31,7 @@ void TcpSocketThreadable::connectSocket(const QString &szIpAddress, const quint1
         case QAbstractSocket::HostLookupState:
         case QAbstractSocket::ConnectingState:
         case QAbstractSocket::ConnectedState:
-            return;
+            return; //already connected, or trying to connect
 
         case QAbstractSocket::UnconnectedState:
         case QAbstractSocket::BoundState:

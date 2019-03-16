@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QApplication>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDebug>
 #include <QDialogButtonBox>
@@ -13,6 +14,7 @@
 #include <QListWidget>
 #include <QObject>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QStyle>
 
 class OptionsWidget : public QWidget
@@ -35,6 +37,15 @@ private:
     QComboBox                   *comboBoxSupportedLanguages{};
     QComboBox                   *comboBoxThemeChoice{};
 
+    QLabel                      *labelFormatExportedLogs{};
+    QCheckBox                   *checkBoxFormatExportedLogs{};
+
+    QLabel                      *labelFontSize{};
+    QSpinBox                    *spinBoxFontSize{};
+
+    QLabel                      *labelRowHeightBias{};
+    QSpinBox                    *spinBoxRowHeightBias{};
+
     QComboBox                   *comboBoxCodeEditorNames{};
     QLineEdit                   *lineEditEditorLocation{};
     QPushButton                 *pushButtonEditorLocationPick{};
@@ -48,9 +59,16 @@ private:
 
 signals:
     void aboutToHide();
+    void fontSizeChanged(const int nValue);
+    void rowHeightBiasChanged(const int nValue);
 
 protected slots:
     void themeSelectionChanged(const QString &szNewTheme);
+
+    void fontSizeChangedSlot(const int nValue);
+    void rowHeightBiasChangedSlot(const int nValue);
+
+    void formatExportedLogsChanged(const int nState);
 
     void codeEditorLanguageChanged(const QString &szNewLanguage);
     void codeEditorSelectionChanged(const QString &szNewEditor);

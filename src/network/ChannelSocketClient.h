@@ -15,7 +15,7 @@ class ChannelSocketClient : public QObject
 
 public:
     explicit ChannelSocketClient(QObject *parent = nullptr);
-    ~ChannelSocketClient();
+    ~ChannelSocketClient() override;
 
     bool connect(const QString &szIpAddress, const QString &szPort);
 
@@ -44,7 +44,7 @@ private slots:
 
 signals:
     void connectionInProgress();
-    void connectionSuccess(const QString &szInfo = QStringLiteral(""));
+    void connectionSuccess(const QString &szInfo = QLatin1String(""));
     void connectionError(int nSocketError, const QString &szError);
     void newMessageReceived(const QString &szMessage);
 

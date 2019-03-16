@@ -112,7 +112,7 @@ void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocke
     if (bKeepRetrying == false) {
         //socket was trying to connect when a disconnect was requested
         if (eSocketState == QAbstractSocket::ConnectedState) {
-            mySocket->disconnectFromHost();
+            emit disconnectSocket();
         }
 
         return;

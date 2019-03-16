@@ -12,7 +12,9 @@ class AppSettings : public QObject
 public:
     enum SETTINGS {
         ///LoggerClientWidget
+        KEY_FONT_SIZE,
         KEY_LOGGER_PATTERN,
+        KEY_ROW_HEIGHT_BIAS,
         KEY_SERVER_IPv4,
         KEY_SERVER_PORT,
         KEY_THEME_NAME,
@@ -24,6 +26,9 @@ public:
         KEY_CODE_EDITOR_NAME,
         KEY_SOURCE_LANGUAGE,
         KEY_SOURCE_LOCATION,
+
+        ///Other Options
+        KEY_FORMAT_EXPORTED_LOGS,
 
         COUNT_APP_SETTINGS
     };
