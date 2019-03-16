@@ -52,31 +52,39 @@ QColor LoggerTableItemModel::getColorForLevel(const QString &szLevel) const
 
 QVariant LoggerTableItemModel::data(const QModelIndex &index, int role) const
 {
-    if (role == Qt::TextAlignmentRole) {
-        if (index.column() == myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_THREADID)) {
-            return QVariant(Qt::AlignTop | Qt::AlignHCenter);
-
-        } else {
-            return QVariant(Qt::AlignTop | Qt::AlignLeft);
-        }
-
-    } else if (role == Qt::BackgroundRole) {
-        if (this->columnCount() > 1) {
-            if (this->item(index.row(), myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_CLASS))->text().contains(QLatin1String("LoggerCppDK"))) {
-                return QBrush(QColor(255, 64, 64, 224));
+    switch (role) {
+        case Qt::TextAlignmentRole:
+            if (index.column() == myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_THREADID)) {
+                static QVariant myAlignTopCenter(Qt::AlignVCenter | Qt::AlignHCenter);
+                return myAlignTopCenter;
 
             } else {
-                QStandardItem *myStandardItem = this->item(index.row(), myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_SEVERITY));
-
-                QColor color = getColorForLevel(myStandardItem->text());
-                return QBrush(color);
+                static QVariant myAlignTopLeft(Qt::AlignVCenter | Qt::AlignLeft);
+                return myAlignTopLeft;
             }
-        }
 
-    } else if (role == Qt::ForegroundRole) {
-        QColor color(224, 224, 224);
+        case Qt::BackgroundRole:
+            if (this->columnCount() > 1) {
+                if (this->item(index.row(), myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_CLASS))->text().startsWith(QLatin1String("LoggerCppDK"))) {
+                    static QBrush myBackgroundColorHighlight(QColor(255, 64, 64, 224));
+                    return myBackgroundColorHighlight;
 
-        return QBrush(color);
+                } else {
+                    QStandardItem *myStandardItem = this->item(index.row(), myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_SEVERITY));
+
+                    QColor color = getColorForLevel(myStandardItem->text());
+                    return QBrush(color);
+                }
+            }
+
+            break;
+
+        case Qt::ForegroundRole:
+            static QBrush myForegroundColor(QColor(224, 224, 224));
+            return myForegroundColor;
+
+        default:
+            return QStandardItemModel::data(index, role);
     }
 
     return QStandardItemModel::data(index, role);

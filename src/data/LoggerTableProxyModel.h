@@ -13,6 +13,7 @@
 #include <QStandardItem>
 #include <QThread>
 
+#include "application/GlobalConstants.h"
 #include "ui/ToastNotificationWidget.h"
 
 class LoggerTableItemModel;
@@ -73,6 +74,8 @@ public:
     int getVisibleIndexForColumn(const LoggerEnum::Columns eColumn);
     LoggerEnum::Columns getColumnForVisibleIndex(const int nIndex);
 
+    void resetIndex();
+
 protected:
     static QString getColumnName(const LoggerEnum::Columns eColumn);
     static void fillLoggerPatternElements();
@@ -80,6 +83,12 @@ protected:
     QList<QStandardItem *> parseLogMessage(const QString &szRowData);
 
 private:
+    struct patternData {
+        LoggerEnum::LoggerPattern eCurrentPattern{LoggerEnum::COUNT_LOGGER_PATTERN};    // current pattern
+        int nDataStartOffset{-1};                                                       // offset for start index (to account for extra separators between elements)
+        QChar cEndSeparator{'\0'};                                                      // char of the end separator for this pattern. For the last group, separator is '\0' (to the end of the message)
+    };
+
     void createNewItemModel(bool bSetAsModel = false);
 
     void updateLoggerPatternCache();
@@ -97,8 +106,9 @@ private:
     static QVector<QString>     szaLoggerSeverityNames;
 
     LoggerTableItemModel        *myItemModel;
+    uint32_t                    nRowIndexCount;
     QString                     szLoggerPattern;
-    QVector<int>                naLoggerPatternData;
+    QVector<patternData>        naLoggerPatternData;
     QVector<int>                naColumnOrder;
     QMutex                      *myMutex;
 
@@ -120,8 +130,8 @@ public slots:
     void deleteRowsBelow(bool bState);
 
 signals:
-    void clipboardParsingResult(bool bParsingResult);
-    void fileParsingResult(bool bParsingResult, const QString &szFilename = QLatin1String(""));
+    void clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult);
+    void fileParsingResult(const int nResult, const QString &szFilename = QLatin1String(""));
     void filterStateChanged(bool);
 
     void showNotification(const QString &szMessage, const ToastNotificationWidget::NotificationType eNotifType, const int nTimeoutMs);

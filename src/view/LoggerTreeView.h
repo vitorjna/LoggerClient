@@ -4,10 +4,10 @@
 #include <QClipboard>
 #include <QDebug>
 #include <QKeyEvent>
-#include <QTreeView>
+#include <QTableView>
 #include <QWidget>
 
-class LoggerTreeView : public QTreeView
+class LoggerTreeView : public QTableView
 {
     Q_OBJECT
 

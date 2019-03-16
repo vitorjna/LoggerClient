@@ -119,7 +119,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${TARGET_INCLUDES})
 # ---------------------------------- COMPILATION --------------------------------- #
 # -------------------------------------------------------------------------------- #
 
-set(CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS} -fno-operator-names -fmessage-length=0 -std=c++11 -pedantic -DBOOST_NO_LONG_LONG -U_GLIBCXX_HAVE_ISWBLANK")
+set(CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS} -fno-operator-names -fmessage-length=0 -std=c++14 -pedantic -DBOOST_NO_LONG_LONG -U_GLIBCXX_HAVE_ISWBLANK")
 
 if (TARGET_WINDOWS OR TARGET_LINUX OR TARGET_OSX)
     set(CXX_FLAGS_COMMON "${CXX_FLAGS_COMMON}")

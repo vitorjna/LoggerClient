@@ -1,5 +1,4 @@
 #include "LoggerTableProxyModel.h"
-#include "application/GlobalConstants.h"
 #include "application/SourceCodeHandler.h"
 #include "data/LoggerTableItemModel.h"
 #include "ui/LoggerClientWidget.h"
@@ -14,6 +13,7 @@ QVector<QString> LoggerTableProxyModel::szaLoggerSeverityNames;
 LoggerTableProxyModel::LoggerTableProxyModel(QObject *parent)
     : QSortFilterProxyModel(parent)
     , myItemModel(nullptr)
+    , nRowIndexCount(0)
     , myMutex(new QMutex(QMutex::NonRecursive))
 {
     fillLoggerPatternElements();
@@ -35,6 +35,10 @@ int LoggerTableProxyModel::getLogSeverityFromName(const QString &szSeverity)
 void LoggerTableProxyModel::appendRow(const QString &szRowData, bool bAppendToRawData)
 {
     const QString szRowDataTrim = szRowData.trimmed();
+
+    if (szRowDataTrim.isEmpty() == true) {
+        return;
+    }
 
     if (szLoggerPattern.isEmpty() == true) {
         myItemModel->appendRow(new QStandardItem(szRowDataTrim));
@@ -207,6 +211,11 @@ LoggerEnum::Columns LoggerTableProxyModel::getColumnForVisibleIndex(const int nI
     return static_cast<LoggerEnum::Columns>(naColumnOrder.at(nIndex));
 }
 
+void LoggerTableProxyModel::resetIndex()
+{
+    nRowIndexCount = 0;
+}
+
 QString LoggerTableProxyModel::getColumnName(const LoggerEnum::Columns eColumn)
 {
     switch (eColumn) {
@@ -267,8 +276,8 @@ void LoggerTableProxyModel::fillLoggerSeverityNames()
 
 //DONE A big optimization was done in the pattern parsing
 /// After the pattern is known, the startIndex and endChar of every pattern element is known
-/// Ex: timestamp always starts at posX and ends with ' ', classname always start at posZ and ends with ']' and so on
-/// These known elements can be parsed when the pattern changes, put in two vectors and just iterate the vector and do the switch case part for each row
+/// Ex: timestamp always starts at posX and ends with ' ', classname always starts at posZ and ends with ']' and so on
+/// These known elements can be parsed when the pattern changes, placed in a vector and just iterate the vector and do the switch case part for each column
 QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szRowData)
 {
     QList<QStandardItem *> myTableRow;
@@ -292,7 +301,7 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
             return myTableRow;
         }
 
-        myTableRow.append(new QStandardItem(QString::number(myItemModel->rowCount() + 1) + "*"));
+        myTableRow.append(new QStandardItem(QString::number(++nRowIndexCount) + "*"));
 
         for (int nIndex = 1; nIndex < LoggerEnum::COLUMN_MESSAGE; ++nIndex) {
             QStandardItem *myPreviousItem = myItemModel->item(nPreviousRow, nIndex);
@@ -307,25 +316,21 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
         return myTableRow;
 
     } else {
-        myTableRow.append(new QStandardItem(QString::number(myItemModel->rowCount() + 1)));
-
-#define PARSE_MESSAGE_CORRECTLY
-#ifdef PARSE_MESSAGE_CORRECTLY
+        myTableRow.append(new QStandardItem(QString::number(++nRowIndexCount)));
 
         int nDataStartIndex = 0;
         int nDataEndIndex = 0;
 
-        for (int nIndex = 0; nIndex < naLoggerPatternData.size(); nIndex += 3) {
+        for (const patternData &patternDataElement : qAsConst(naLoggerPatternData)) {
 
-            LoggerEnum::LoggerPattern nCurrentPattern = static_cast<LoggerEnum::LoggerPattern>(naLoggerPatternData.at(nIndex));
-            int nStartOffset = naLoggerPatternData.at(nIndex + 1);
+            const LoggerEnum::LoggerPattern nCurrentPattern = patternDataElement.eCurrentPattern;
+            const int nStartOffset                          = patternDataElement.nDataStartOffset;
+            const QChar cEndSeparator                       = patternDataElement.cEndSeparator;
 
-            if (naLoggerPatternData.at(nIndex + 2) == -1) { //last element
+            if (cEndSeparator == '\0') { //last element
                 myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex + nStartOffset).trimmed().toString()));
 
             } else {
-
-                QChar cEndSeparator = QChar::fromLatin1(static_cast<char>(naLoggerPatternData.at(nIndex + 2)));
 //                cEndSeparator = ' ';
                 nDataStartIndex += nStartOffset;
 
@@ -374,37 +379,6 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
 
             nDataStartIndex = nDataEndIndex + 1;
         }
-
-#else
-        int nIndexStart = 0;
-        int nIndexEnd = 0;
-        nIndexStart = szRowData.indexOf(" ", 0);
-        nIndexStart = szRowData.indexOf(" ", ++nIndexStart);
-        QString szTimeStamp = szRowData.left(nIndexStart);
-
-        nIndexEnd = szRowData.indexOf(" ", ++nIndexStart);
-        QString szThreadId = szRowData.mid(nIndexStart, nIndexEnd - nIndexStart);
-        nIndexStart = nIndexEnd;
-
-        nIndexEnd = szRowData.indexOf("]", ++nIndexStart);
-        QString szClassName = szRowData.mid(nIndexStart + 1, nIndexEnd - nIndexStart - 1);
-        nIndexStart = nIndexEnd;
-
-        ++nIndexStart; //last one was ], after it is the space, so increment again here
-        nIndexEnd = szRowData.indexOf(" ", ++nIndexStart);
-        QString szSeverity = szRowData.mid(nIndexStart, nIndexEnd - nIndexStart);
-        nIndexStart = nIndexEnd;
-
-        nIndexStart = szRowData.indexOf(" ", ++nIndexStart);
-        QString szMessage = szRowData.mid(nIndexStart);
-
-        myTableRow.append(new QStandardItem(szTimeStamp.trimmed()));
-        myTableRow.append(new QStandardItem(szThreadId.trimmed()));
-        myTableRow.append(new QStandardItem(szClassName.trimmed()));
-        myTableRow.append(new QStandardItem(szSeverity.trimmed()));
-        myTableRow.append(new QStandardItem(szMessage.trimmed()));
-
-#endif
     }
 
     return myTableRow;
@@ -442,11 +416,6 @@ void LoggerTableProxyModel::createNewItemModel(bool bSetAsModel)
 
 void LoggerTableProxyModel::updateLoggerPatternCache()
 {
-    ///this vector is composed of groups of 3 ints
-    /// 1-current pattern
-    /// 2-offset for start index (to account for extra separators between elements)
-    /// 3-char of the end separator for the pattern in 1. For the last group, this char is -1 (to the end of the message)
-
     naLoggerPatternData.clear();
     naColumnOrder.clear();
     naColumnOrder.append(LoggerEnum::COLUMN_INDEX);
@@ -461,6 +430,8 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
     int nPatternEnd = szLoggerPattern.size() - 1;
 
     while (bLastSegment == false) {
+
+        patternData patternDataElement;
 
         int nDataStartOffset = 0;
 
@@ -501,7 +472,8 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
 
                 }
 
-                naLoggerPatternData.append(ePattern);     //1
+                //TODO if pattern not valid, should continue looking
+                patternDataElement.eCurrentPattern = ePattern;  //1
 
                 ++nPatternIndex;
                 break;
@@ -513,7 +485,7 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
             ++nPatternIndex;
         }
 
-        naLoggerPatternData.append(nDataStartOffset);   //2
+        patternDataElement.nDataStartOffset = nDataStartOffset;  //2
 
         //nPatternIndex is currently at the letter after the %
 
@@ -547,11 +519,13 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
         }
 
         if (bLastSegment == true) {
-            naLoggerPatternData.append(-1);    //3
+            patternDataElement.cEndSeparator = '\0';  //3
 
         } else {
-            naLoggerPatternData.append(static_cast<int>(cEndSeparator.toLatin1()));    //3
+            patternDataElement.cEndSeparator = cEndSeparator;  //3
         }
+
+        naLoggerPatternData.append(patternDataElement);
     }
 
 }
@@ -614,13 +588,15 @@ void LoggerTableProxyModel::clear()
 void LoggerTableProxyModel::parseFile(const QString &szFilename)
 {
     if (FileUtils::isFileTypeLog(szFilename) == false) {
-        emit fileParsingResult(false);
+        emit fileParsingResult(GlobalConstants::ERROR);
         return;
     }
 
     QFile myFile(szFilename);
 
     if (myFile.open(QFile::ReadOnly) == true) {
+
+        resetIndex();
 
         createNewItemModel();
 
@@ -634,19 +610,26 @@ void LoggerTableProxyModel::parseFile(const QString &szFilename)
 
         this->setSourceModel(myItemModel);
 
-        emit fileParsingResult(true, QFileInfo(szFilename).fileName());
+        emit fileParsingResult(GlobalConstants::SUCCESS, QFileInfo(szFilename).fileName());
 
     } else {
-        emit fileParsingResult(false);
+        emit fileParsingResult(GlobalConstants::ERROR);
     }
 
 }
 
 void LoggerTableProxyModel::parseClipboard()
 {
-    TimeUtils::startTimer();
+//    TimeUtils::startTimer();
+
+    resetIndex();
 
     createNewItemModel(); //this way is faster: create a new model, insert every row, and set as model in the end
+
+//#define DEBUG_SPEED
+#ifdef DEBUG_SPEED
+    this->setSourceModel(myItemModel);
+#endif
 
     QString szClipboardData = QApplication::clipboard()->text();
 
@@ -658,15 +641,17 @@ void LoggerTableProxyModel::parseClipboard()
         this->appendRow(szRowData);
     }
 
+#ifndef DEBUG_SPEED
     this->setSourceModel(myItemModel);
+#endif
 
-    TimeUtils::printTimeMilliseconds();
+//    TimeUtils::printTimeMilliseconds();
 
     if (myItemModel->rowCount() == 0) {
-        emit clipboardParsingResult(false);
+        emit clipboardParsingResult(GlobalConstants::ERROR);
 
     } else {
-        emit clipboardParsingResult(true);
+        emit clipboardParsingResult(GlobalConstants::SUCCESS);
     }
 }
 
@@ -674,13 +659,9 @@ void LoggerTableProxyModel::newMessageReceived(const QString &szMessage)
 {
     QMutexLocker myScopedMutex(myMutex);
 
-    QVector<QStringRef> szraMessages = szMessage.splitRef('\n');
+    QStringList szaMessages = szMessage.split('\n', QString::SkipEmptyParts, Qt::CaseInsensitive);
 
-    for (const QStringRef &szrMessage : szraMessages) {
-        if (szrMessage.trimmed().isEmpty() == false) {
-            this->appendRow(szrMessage.toString());
-        }
-    }
+    appendRows(szaMessages);
 }
 
 void LoggerTableProxyModel::setLoggerPattern(const QString &szPattern)

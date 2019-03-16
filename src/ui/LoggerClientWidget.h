@@ -18,8 +18,9 @@
 #include <QShortcut>
 #include <QStyleFactory>
 #include <QThread>
-#include <QTreeView>
 #include <QWidget>
+
+#include "application/GlobalConstants.h"
 
 class ChannelSocketClient;
 class LoggerTableProxyModel;
@@ -70,7 +71,7 @@ private:
 
     void selectFocus();
     void updateButtonsRowCountDependent(LogMode eNewMode = COUNT_LOG_MODE);
-    void checkResizeColumns(bool bIgnoreRowCount = false);
+    void resizeColumnsIfNeeded(bool bIgnoreRowCount = false);
 
     void saveTableToFile(const QString &szFilename = QLatin1String(""));
 
@@ -94,6 +95,7 @@ private:
     QLabel                  *labelLoggerPattern{};
     QComboBox               *comboBoxLoggerPattern{};
 
+    QPushButton             *pushButtonResizeColumns{};
     QPushButton             *pushButtonClearFilter{};
     QPushButton             *pushButtonClearTable{};
     PushButtonWithMenu      *pushButtonSaveToFile{};
@@ -112,10 +114,10 @@ protected slots:
 
     void buttonOpenFileClicked(bool bButtonState);
     void buttonOpenFileResult(const QString &szFilename);
-    void fileParsingResult(bool bParsingResult, const QString &szFilename);
+    void fileParsingResult(const int nResult, const QString &szFilename);
 
     void pasteText();
-    void clipboardParsingResult(bool bParsingResult);
+    void clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult);
 
     void rowsAboutToBeInsertedInModel(const QModelIndex &parent, int first, int last);
     void rowsInsertedInModel(const QModelIndex &parent, int first, int last);
@@ -144,6 +146,9 @@ private slots:
     void loggerPatternEditingFinished(const QString &szLoggerPattern);
 
     void tableViewHeaderResized(int logicalIndex, int oldSize, int newSize);
+
+    void fontSizeChanged(const int nValue);
+    void rowHeightBiasChanged(int nValue = INT_MAX);
 
 signals:
     void clearModel();

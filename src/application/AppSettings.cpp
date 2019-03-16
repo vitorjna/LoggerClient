@@ -28,7 +28,9 @@ QSettings *AppSettings::initQSettings()
 QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
 {
     switch (eKey) {
+        case AppSettings::KEY_FONT_SIZE:
         case AppSettings::KEY_LOGGER_PATTERN:
+        case AppSettings::KEY_ROW_HEIGHT_BIAS:
         case AppSettings::KEY_SERVER_IPv4:
         case AppSettings::KEY_SERVER_PORT:
         case AppSettings::KEY_THEME_NAME:
@@ -42,6 +44,9 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_SOURCE_LOCATION:
             return GlobalConstants::WIDGET_SOURCE_CODE;
 
+        case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
+            return GlobalConstants::APPLICATION_OPTIONS;
+
         case COUNT_APP_SETTINGS:
             return QLatin1String("");
     }
@@ -50,6 +55,9 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
 QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
 {
     switch (eKey) {
+        case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
+            return GlobalConstants::SETTINGS_FORMAT_EXPORTED_LOGS;
+
         case AppSettings::KEY_SOURCE_LANGUAGE:
             return GlobalConstants::SETTINGS_SOURCE_LANGUAGE;
 
@@ -65,8 +73,14 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_CODE_EDITOR_NAME:
             return GlobalConstants::SETTINGS_CODE_EDITOR_NAME;
 
+        case AppSettings::KEY_FONT_SIZE:
+            return GlobalConstants::SETTINGS_FONT_SIZE;
+
         case AppSettings::KEY_LOGGER_PATTERN:
             return GlobalConstants::SETTINGS_LOGGER_PATTERN;
+
+        case AppSettings::KEY_ROW_HEIGHT_BIAS:
+            return GlobalConstants::SETTINGS_ROW_HEIGHT_BIAS;
 
         case AppSettings::KEY_SERVER_IPv4:
             return GlobalConstants::SETTINGS_LABEL_SERVER_IPv4;
