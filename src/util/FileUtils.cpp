@@ -8,7 +8,8 @@ bool FileUtils::isFileTypeLog(const QString &szFilename)
     bool bIsLog = false;
 
     if (myFileInfoLog.fileName().endsWith(GlobalConstants::FILE_EXTENSION_LOG) == true
-        || myFileInfoLog.fileName().endsWith(GlobalConstants::FILE_EXTENSION_TXT) == true) {
+        || myFileInfoLog.fileName().endsWith(GlobalConstants::FILE_EXTENSION_TXT) == true
+        || myFileInfoLog.fileName().contains(GlobalConstants::FILE_EXTENSION_LOG + '.') == true ) { //ex: filename.log.3 (for rolling file logs)
         bIsLog = true;
     }
 

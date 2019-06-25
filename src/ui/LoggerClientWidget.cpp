@@ -18,6 +18,13 @@
 //TODO class filter and text search are mutually exclusive. Both act on setFilterRegExp
 //TODO pattern: parse only when pressing return or losing focus
 //TODO pattern: add window for managing patterns
+//TODO add shortcut for ctrl+scroll change text size, alt scroll line height
+//TODO open file and set breakpoint
+//TODO open multiple editor context menu
+//TODO right click on selected cells, copy only that column contents. Good to export XML from multiple lines
+//TODO right click with multiple lines selected: generate "filter by" action for all classes
+//TODO after removing filter OR search text, keep selected index in view (by default it scrolls to the bottom)
+//TODO add default name for log file saving as text
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
@@ -181,21 +188,27 @@ void LoggerClientWidget::setupUI()
             myTableView->setAlternatingRowColors(false);
             myTableView->setModel(myProxyModel);
 //            myTableView->setRootIsDecorated(false);
-            myTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-            myTableView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-            myTableView->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
             myTableView->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::MinimumExpanding);
             myTableView->setSortingEnabled(false);
-            myTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
-            myTableView->horizontalHeader()->setHighlightSections(false);
-            myTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-            myTableView->verticalHeader()->setVisible(false);
             myTableView->setShowGrid(false);
             myTableView->setContextMenuPolicy(Qt::CustomContextMenu);
 //            myTableView->setUniformRowHeights(true); //much performance for QTreeView
             myTableView->setSelectionMode(QAbstractItemView::ExtendedSelection);
             myTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+//            myTableView->setAutoScroll(false);
             myTableView->setWordWrap(false);
+
+            //Horizontal
+            myTableView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+            myTableView->setHorizontalScrollMode(QAbstractItemView::ScrollPerPixel);
+            myTableView->horizontalHeader()->setSectionResizeMode(QHeaderView::Interactive);
+            myTableView->horizontalHeader()->setHighlightSections(false);
+            myTableView->horizontalHeader()->setStretchLastSection(true);
+            //Vertical
+            myTableView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+            myTableView->setVerticalScrollMode(QAbstractItemView::ScrollPerPixel);
+            myTableView->verticalHeader()->setSectionResizeMode(QHeaderView::Fixed);
+            myTableView->verticalHeader()->setVisible(false);
         }
         myMainLayout->addWidget(myTableView, INT_MAX);
 
@@ -288,7 +301,7 @@ void LoggerClientWidget::setupSignalsAndSlots()
             this,                       SLOT(customContextMenuRequestedOnTableView(QPoint)));
 
     connect(pushButtonResizeColumns,    &QPushButton::clicked,
-            pushButtonOptions,          [ = ] { myTableView->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents); });
+            this,                       &LoggerClientWidget::resizeColumnsLoosely);
 
     connect(pushButtonClearFilter,      SIGNAL(clicked(bool)),
             this,                       SLOT(buttonClickedClearFilter(bool)));
@@ -443,6 +456,14 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setMode(NetworkConnectionWidget::CONNECTED);
 
             buttonOpenFile->setEnabled(false);
+
+            if (mySearchWidget->isEmpty() == false) {
+                mySearchWidget->triggerSearchTextChanged(); //reapply filter
+
+            } else {
+                myProxyModel->reApplyFilter(); //will reapply column filter if it exists
+            }
+
             break;
         }
 
@@ -606,6 +627,8 @@ void LoggerClientWidget::buttonConnectToServerToggled(bool bButtonState)
         setLogWidgetMode(EMPTY);
 
         myChannelSocketClient->disconnectAndStopRetries();
+
+        myProxyModel->resetIndex();
     }
 }
 
@@ -649,7 +672,18 @@ void LoggerClientWidget::fileParsingResult(const int nResult, const QString &szF
 
 void LoggerClientWidget::pasteText()
 {
-    emit parseClipboard();
+    if (eCurrentMode != EMPTY
+        && eCurrentMode != CLIPBOARD) {
+        if (eCurrentMode == FILE) {
+            ToastNotificationWidget::showMessage(this, tr("Can't paste now") + ". " + tr("Close file first"), ToastNotificationWidget::INFO, 3000);
+
+        } else {
+            ToastNotificationWidget::showMessage(this, tr("Can't paste now") + ". " + tr("Disconnect first"), ToastNotificationWidget::INFO, 3000);
+        }
+
+    } else {
+        emit parseClipboard();
+    }
 }
 
 void LoggerClientWidget::clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult)
@@ -839,7 +873,7 @@ void LoggerClientWidget::searchTextChanged(const QString &szText)
 {
 //    qDebug() << "searchTextChanged:" << szText;
 
-    myProxyModel->setFilterRegExp(QRegExp(szText, Qt::CaseInsensitive, QRegExp::FixedString));
+    myProxyModel->setFilterRegExp(QRegExp(szText, Qt::CaseInsensitive, QRegExp::FixedString), false);
     myProxyModel->setFilterKeyColumn(-1);
 
 //    QModelIndexList myMatches = myProxyModel->match(myProxyModel->index(0, 0), Qt::UserRole, szText, -1, Qt::MatchContains | Qt::MatchFixedString | Qt::MatchWrap);
@@ -906,6 +940,17 @@ void LoggerClientWidget::tableViewHeaderResized(int logicalIndex, int oldSize, i
 
     if (myProxyModel->rowCount() != 0) {
         bUsingCustomColumnWidth = true;
+    }
+}
+
+void LoggerClientWidget::resizeColumnsLoosely()
+{
+    const double nAverageCharWidth = this->font().pointSize() * 0.70; //this->fontMetrics().averageCharWidth() * 1.1;
+
+    for (int nColumn = 0; nColumn < myTableView->horizontalHeader()->count(); ++nColumn) {
+        const int nSize = myTableView->getColumnMaxCharCount(nColumn, 0, -1, true);
+
+        myTableView->horizontalHeader()->resizeSection(nColumn, qRound(nSize * nAverageCharWidth) + nAverageCharWidth * 3);
     }
 }
 

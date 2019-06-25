@@ -17,6 +17,12 @@ public:
     explicit SearchWidget(QWidget *parent = nullptr);
     ~SearchWidget() override;
 
+    bool isEmpty();
+
+    void triggerSearchTextChanged();
+
+    void clear();
+
 private:
     void setupUi();
     void setupSignalsAndSlots();
