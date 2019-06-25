@@ -68,8 +68,8 @@ public:
 
     QList<QAction *> *generateActionsForIndex(const QModelIndex &myModelIndex, QWidget *parent);
 
-    void setFilterRegExp(const QRegExp &regExp);
-    void setFilterRegExp(const QString &szPattern);
+    void setFilterRegExp(const QRegExp &regExp, bool bActualFilter = true);
+    void reApplyFilter();
 
     int getVisibleIndexForColumn(const LoggerEnum::Columns eColumn);
     LoggerEnum::Columns getColumnForVisibleIndex(const int nIndex);
@@ -113,6 +113,7 @@ private:
     QMutex                      *myMutex;
 
     QStringList                 szaTableModelRaw;
+    QRegExp                     myFilter;
 
 public slots:
     void clear();

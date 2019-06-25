@@ -207,7 +207,7 @@ void OptionsWidget::loadSettings()
     int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
     spinBoxRowHeightBias->setValue(nRowBias);
 
-    bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, true).toBool();
+    bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, false).toBool();
     checkBoxFormatExportedLogs->setChecked(bFormatExportedLogs);
 
     QString szCodeLanguage = SourceCodeHandler::getCurrentLanguage();

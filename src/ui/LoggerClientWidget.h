@@ -147,6 +147,8 @@ private slots:
 
     void tableViewHeaderResized(int logicalIndex, int oldSize, int newSize);
 
+    void resizeColumnsLoosely();
+
     void fontSizeChanged(const int nValue);
     void rowHeightBiasChanged(int nValue = INT_MAX);
 

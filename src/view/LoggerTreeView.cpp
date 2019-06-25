@@ -27,7 +27,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
     }
 
 
-    bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, true).toBool();
+    bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, false).toBool();
 
     QVector<int> naMaxSizes;
 
@@ -35,9 +35,9 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
         naMaxSizes.reserve(nRight - nLeft);
 
         for (int nCol = nLeft; nCol <= nRight; ++nCol) {
-            int nMaxSize = getColumnMaxWidth(nCol, nTop, nBottom);
+            int nMaxCharCount = getColumnMaxCharCount(nCol, nTop, nBottom);
 
-            naMaxSizes.push_back(nMaxSize + (nMaxSize % 4) + 1); //round to the next multiple of 4
+            naMaxSizes.push_back(nMaxCharCount + (nMaxCharCount % 4) + 1); //round to the next multiple of 4
         }
     }
 
@@ -75,7 +75,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
     return szText;
 }
 
-int LoggerTreeView::getColumnMaxWidth(const int nCol, int nRowTop, int nRowBottom)
+int LoggerTreeView::getColumnMaxCharCount(const int nCol, const int nRowTop, int nRowBottom, bool bFixOutliers)
 {
     if (nRowBottom == -1) {
         nRowBottom = this->model()->rowCount() - 1;
@@ -83,15 +83,41 @@ int LoggerTreeView::getColumnMaxWidth(const int nCol, int nRowTop, int nRowBotto
 
     int nMaxSize = -1;
 
-    for (int nRow = nRowTop; nRow <= nRowBottom; ++nRow) {
-        int nCellSize = model()->index(nRow, nCol).data().toString().size();
+    if (bFixOutliers == true) {
+        QVector<int> naMaxSizes;
+        naMaxSizes.reserve(nRowBottom - nRowTop);
 
-        if (nCellSize > nMaxSize) {
-            nMaxSize = nCellSize;
+        for (int nRow = nRowTop; nRow <= nRowBottom; ++nRow) {
+            naMaxSizes.append(model()->index(nRow, nCol).data().toString().size());
+        }
+
+        std::sort(naMaxSizes.begin(), naMaxSizes.end());
+
+        nMaxSize = naMaxSizes.at(qRound(naMaxSizes.size() * 0.95));
+
+    } else {
+        for (int nRow = nRowTop; nRow <= nRowBottom; ++nRow) {
+            int nCellSize = model()->index(nRow, nCol).data().toString().size();
+
+            if (nCellSize > nMaxSize) {
+                nMaxSize = nCellSize;
+            }
         }
     }
 
     return nMaxSize;
+}
+
+void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)
+{
+    qDebug() << index.row() << index.column();
+
+    if (hint == QAbstractItemView::EnsureVisible
+        && index.column() == index.model()->columnCount() - 1) { //last column
+        return;
+    }
+
+    QTableView::scrollTo(index, hint);
 }
 
 void LoggerTreeView::keyPressEvent(QKeyEvent *myKeyEvent)

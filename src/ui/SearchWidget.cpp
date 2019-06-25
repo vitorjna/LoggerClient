@@ -11,6 +11,21 @@ SearchWidget::~SearchWidget()
 {
 }
 
+bool SearchWidget::isEmpty()
+{
+    return lineEditSearchText->text().isEmpty();
+}
+
+void SearchWidget::triggerSearchTextChanged()
+{
+    emit searchTextChanged(lineEditSearchText->text());
+}
+
+void SearchWidget::clear()
+{
+    lineEditSearchText->clear();
+}
+
 void SearchWidget::setupUi()
 {
     QHBoxLayout *mySearchTextLayout = new QHBoxLayout(this);

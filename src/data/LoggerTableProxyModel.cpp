@@ -177,28 +177,27 @@ QList<QAction *> *LoggerTableProxyModel::generateActionsForIndex(const QModelInd
     return myActionList;
 }
 
-void LoggerTableProxyModel::setFilterRegExp(const QRegExp &regExp)
+void LoggerTableProxyModel::setFilterRegExp(const QRegExp &regExp, bool bActualFilter)
 {
     if (regExp.isValid() == true) {
-        emit filterStateChanged(true);
+        myFilter = regExp;
+        QSortFilterProxyModel::setFilterRegExp(regExp);
+
+        emit filterStateChanged(bActualFilter); //if search was text, always emit false (not actual filter, just text)
 
     } else {
+        myFilter = QRegExp();
+        QSortFilterProxyModel::setFilterRegExp(regExp);
+
         emit filterStateChanged(false);
     }
-
-    QSortFilterProxyModel::setFilterRegExp(regExp);
 }
 
-void LoggerTableProxyModel::setFilterRegExp(const QString &szPattern)
+void LoggerTableProxyModel::reApplyFilter()
 {
-    if (szPattern.size() != 0) {
-        emit filterStateChanged(true);
-
-    } else {
-        emit filterStateChanged(false);
+    if (myFilter.pattern().isEmpty() == false) {
+        setFilterRegExp(myFilter);
     }
-
-    QSortFilterProxyModel::setFilterRegExp(szPattern);
 }
 
 int LoggerTableProxyModel::getVisibleIndexForColumn(const LoggerEnum::Columns eColumn)
@@ -582,7 +581,7 @@ void LoggerTableProxyModel::clear()
 {
     createNewItemModel(true);
 
-    setFilterRegExp(QRegExp());
+//    setFilterRegExp(QRegExp());
 }
 
 void LoggerTableProxyModel::parseFile(const QString &szFilename)
@@ -691,8 +690,6 @@ void LoggerTableProxyModel::menuActionClickedFilter(bool bState)
     //TODO add the filter to a line edit so the user can change it
     this->setFilterRegExp(QRegExp("\\b" + szFilter + "\\b", Qt::CaseSensitive, QRegExp::RegExp));
     this->setFilterKeyColumn(nColumn);
-
-    emit filterStateChanged(true);
 }
 
 void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
