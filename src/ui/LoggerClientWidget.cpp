@@ -2,11 +2,11 @@
 #include "application/AppSettings.h"
 #include "data/LoggerTableProxyModel.h"
 #include "network/ChannelSocketClient.h"
-#include "ui/NetworkConnectionWidget.h"
-#include "ui/OptionsWidget.h"
-#include "ui/PushButtonWithMenu.h"
-#include "ui/SearchWidget.h"
 #include "ui/ToastNotificationWidget.h"
+#include "ui/element/PushButtonWithMenu.h"
+#include "ui/modal/OptionsWidget.h"
+#include "ui/widget/NetworkConnectionWidget.h"
+#include "ui/widget/SearchWidget.h"
 #include "util/FileUtils.h"
 #include "util/MemoryUtils.h"
 #include "util/TimeUtils.h"
@@ -314,7 +314,7 @@ void LoggerClientWidget::setupSignalsAndSlots()
             myOptionsWidget,            &OptionsWidget::setVisible);
 
     connect(myOptionsWidget,            &OptionsWidget::aboutToHide,
-            pushButtonOptions,          [ = ] { pushButtonOptions->setChecked(false); });
+            pushButtonOptions,          [ = ] { pushButtonOptions->setChecked(false); pushButtonOptions->clearFocus(); });
 
     connect(myOptionsWidget,            &OptionsWidget::fontSizeChanged,
             this,                       &LoggerClientWidget::fontSizeChanged);
@@ -363,8 +363,11 @@ void LoggerClientWidget::loadSettings()
         this->resize(600, 800); //default
     }
 
-    QString szServerAddressIpV4 = AppSettings::getValue(AppSettings::KEY_SERVER_IPv4).toString();
-    myServerConnectionWidget->setIp(szServerAddressIpV4);
+    QString szServerName = AppSettings::getValue(AppSettings::KEY_SERVER_NAME).toString();
+    myServerConnectionWidget->setName(szServerName);
+
+    QString szServerIpV4 = AppSettings::getValue(AppSettings::KEY_SERVER_IPv4).toString();
+    myServerConnectionWidget->setIp(szServerIpV4);
 
     QString szServerPort = AppSettings::getValue(AppSettings::KEY_SERVER_PORT).toString();
     myServerConnectionWidget->setPort(szServerPort);
@@ -556,9 +559,10 @@ void LoggerClientWidget::resizeColumnsIfNeeded(bool bIgnoreRowCount)
 {
     if (bUsingCustomColumnWidth == true) {
         return;
+    }
 
-    } else if (bIgnoreRowCount == true
-               || myTableView->model()->rowCount() == 1) {
+    if (bIgnoreRowCount == true
+        || myTableView->model()->rowCount() == 1) {
 
         myTableView->horizontalHeader()->resizeSections(QHeaderView::ResizeToContents); //don't do this very often, for performance reasons
     }
@@ -614,6 +618,7 @@ void LoggerClientWidget::buttonConnectToServerToggled(bool bButtonState)
         if (bConnectionResult == true) {
             setLogWidgetMode(SERVER_CONNECTING);
 
+            AppSettings::setValue(AppSettings::KEY_SERVER_NAME, myServerConnectionWidget->getName());
             AppSettings::setValue(AppSettings::KEY_SERVER_IPv4, myServerConnectionWidget->getIp());
             AppSettings::setValue(AppSettings::KEY_SERVER_PORT, myServerConnectionWidget->getPort());
 
@@ -694,6 +699,8 @@ void LoggerClientWidget::clipboardParsingResult(const GlobalConstants::ErrorCode
         setLogWidgetMode(CLIPBOARD);
         resizeColumnsIfNeeded(true);
         updateButtonsRowCountDependent();
+
+        ToastNotificationWidget::showMessage(this, tr("Clipboard parsed successfully"), ToastNotificationWidget::SUCCESS, 1000);
 
     } else {
         setLogWidgetMode(EMPTY);
@@ -833,7 +840,7 @@ void LoggerClientWidget::buttonSaveToFileResult(const QString &szFilename)
 
 }
 
-void LoggerClientWidget::customContextMenuRequestedOnTableView(QPoint pos)
+void LoggerClientWidget::customContextMenuRequestedOnTableView(const QPoint &pos)
 {
     QModelIndex myModelIndex = myTableView->indexAt(pos);
 
@@ -845,7 +852,7 @@ void LoggerClientWidget::customContextMenuRequestedOnTableView(QPoint pos)
 
     QMenu *myMenu = new QMenu(this);
 
-    if (myActionList->size() == 0) {
+    if (myActionList->isEmpty() == true) {
         QAction *myAction = new QAction(tr("No action available"));
         myAction->setEnabled(false);
 
@@ -909,12 +916,12 @@ void LoggerClientWidget::connectionInProgress()
     setLogWidgetMode(SERVER_RETRYING);
 }
 
-void LoggerClientWidget::newMessageReceived(const QString &szMessage)
-{
-    Q_UNUSED(szMessage)
+//void LoggerClientWidget::newMessageReceived(const QString &szMessage)
+//{
+//    Q_UNUSED(szMessage)
 
-//    myTableView->viewport()->update();
-}
+////    myTableView->viewport()->update();
+//}
 
 void LoggerClientWidget::loggerPatternEditingFinished(const QString &szLoggerPattern)
 {
@@ -995,13 +1002,11 @@ void LoggerClientWidget::dropEvent(QDropEvent *myDropEvent)
         emit parseFile(szDroppedFile);
 
         myDropEvent->accept();
-        return;
 
     } else {
         myDropEvent->ignore();
+        QWidget::dropEvent(myDropEvent);
     }
-
-    QWidget::dropEvent(myDropEvent);
 }
 
 void LoggerClientWidget::resizeEvent(QResizeEvent *event)

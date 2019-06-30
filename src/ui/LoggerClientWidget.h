@@ -131,7 +131,7 @@ protected slots:
     void buttonClickedSaveToFile(QAction *myAction);
     void buttonSaveToFileResult(const QString &szFilename);
 
-    void customContextMenuRequestedOnTableView(QPoint pos);
+    void customContextMenuRequestedOnTableView(const QPoint &pos);
 
     void filterStateChanged(bool bState);
 
@@ -141,7 +141,7 @@ private slots:
     void connectionSuccess(const QString &szError);
     void connectionError(int nSocketError, const QString &szError);
     void connectionInProgress();
-    void newMessageReceived(const QString &szMessage);
+//    void newMessageReceived(const QString &szMessage);
 
     void loggerPatternEditingFinished(const QString &szLoggerPattern);
 

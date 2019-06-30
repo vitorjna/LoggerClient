@@ -23,7 +23,7 @@ private slots:
     void readNewMessage();
 
 signals:
-    void newMessage(QString szMessage);
+    void newMessage(const QString &szMessage);
 
 };
 

@@ -16,6 +16,7 @@ public:
         KEY_LOGGER_PATTERN,
         KEY_ROW_HEIGHT_BIAS,
         KEY_SERVER_IPv4,
+        KEY_SERVER_NAME,
         KEY_SERVER_PORT,
         KEY_THEME_NAME,
         KEY_WINDOW_POS_MAIN,
@@ -29,6 +30,7 @@ public:
 
         ///Other Options
         KEY_FORMAT_EXPORTED_LOGS,
+        KEY_LOGGER_SERVER_ADDRESSES,
 
         COUNT_APP_SETTINGS
     };

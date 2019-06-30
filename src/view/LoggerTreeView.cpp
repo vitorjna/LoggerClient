@@ -1,6 +1,7 @@
 #include "LoggerTreeView.h"
 #include "application/AppSettings.h"
 #include "application/GlobalConstants.h"
+#include "ui/ToastNotificationWidget.h"
 
 LoggerTreeView::LoggerTreeView(QWidget *parent)
     : QTableView(parent)
@@ -45,7 +46,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
     szSelectionContents.reserve(100 * (nBottom - nTop));
 
     for (int nRow = nTop; nRow <= nBottom; ++nRow) {
-        QString szRowContents;
+        QString szRowContents; //TODO could use a QStringList and then join
         szRowContents.reserve(100);
 
         for (int nCol = nLeft; nCol <= nRight; ++nCol) {
@@ -131,7 +132,7 @@ void LoggerTreeView::keyPressEvent(QKeyEvent *myKeyEvent)
 //        }
 
     } else if (myKeyEvent->matches(QKeySequence::Copy)) {
-        QModelIndexList myModelIndexList = selectedIndexes();
+        const QModelIndexList myModelIndexList = selectedIndexes();
 
         if (myModelIndexList.isEmpty() == true) {
             return;
@@ -147,6 +148,8 @@ void LoggerTreeView::keyPressEvent(QKeyEvent *myKeyEvent)
         }
 
         QApplication::clipboard()->setText(szText);
+
+        ToastNotificationWidget::showMessage(this, tr("Data copied to clipboard"), ToastNotificationWidget::SUCCESS, 1500);
 
     } else {
         QTableView::keyPressEvent(myKeyEvent);

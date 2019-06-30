@@ -12,6 +12,7 @@ public:
     };
 
     static const QString    SEPARATOR_SETTINGS_LIST;
+    static const QString    SEPARATOR_SETTINGS_LIST_2;
     static const QChar      SEPARATOR_EXPORTED_TEXT_LINE;
     static const QChar      SEPARATOR_EXPORTED_TEXT_COLUMN;
 
@@ -26,6 +27,7 @@ public:
     ///LoggerClientWidget
     static const QString    SETTINGS_FONT_SIZE;
     static const QString    SETTINGS_LABEL_SERVER_IPv4;
+    static const QString    SETTINGS_LABEL_SERVER_NAME;
     static const QString    SETTINGS_LABEL_SERVER_PORT;
     static const QString    SETTINGS_LOGGER_PATTERN;
     static const QString    SETTINGS_ROW_HEIGHT_BIAS;
@@ -42,6 +44,7 @@ public:
 
     ///Other Options
     static const QString    SETTINGS_FORMAT_EXPORTED_LOGS;
+    static const QString    SETTINGS_LOGGER_SERVER_ADDRESSES;
 
     static const QString    FILE_EXTENSION_CPP;
     static const QString    FILE_EXTENSION_JAVA;

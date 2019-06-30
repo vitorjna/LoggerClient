@@ -69,9 +69,7 @@ ToastNotificationWidget::ToastNotificationWidget(const NotificationType eNotifTy
     setStyleSheet(eNotifType);
 }
 
-ToastNotificationWidget::~ToastNotificationWidget()
-{
-}
+ToastNotificationWidget::~ToastNotificationWidget() = default;
 
 void ToastNotificationWidget::setupUi()
 {

@@ -100,7 +100,7 @@ void ChannelSocketClient::reconnectSocket()
 void ChannelSocketClient::newMessageOnSocket(const QString &szMessage)
 {
     //check if there was a disconnect requested, ignore message
-    if (bKeepRetrying == false) {
+    if (nPort == 0) {
         return;
     }
 
@@ -109,7 +109,7 @@ void ChannelSocketClient::newMessageOnSocket(const QString &szMessage)
 
 void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocketState)
 {
-    if (bKeepRetrying == false) {
+    if (nPort == 0) {
         //socket was trying to connect when a disconnect was requested
         if (eSocketState == QAbstractSocket::ConnectedState) {
             emit disconnectSocket();
@@ -153,7 +153,7 @@ void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocke
 
 void ChannelSocketClient::socketError(QAbstractSocket::SocketError eSocketError)
 {
-    if (bKeepRetrying == false) {
+    if (nPort == 0) {
         return;
     }
 
