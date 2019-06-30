@@ -9,6 +9,7 @@
 
 QVector<QString> LoggerTableProxyModel::szaLoggerPatternElements;
 QVector<QString> LoggerTableProxyModel::szaLoggerSeverityNames;
+const QChar      LoggerTableProxyModel::END_SEPARATOR{'\0'};
 
 LoggerTableProxyModel::LoggerTableProxyModel(QObject *parent)
     : QSortFilterProxyModel(parent)
@@ -16,6 +17,8 @@ LoggerTableProxyModel::LoggerTableProxyModel(QObject *parent)
     , nRowIndexCount(0)
     , myMutex(new QMutex(QMutex::NonRecursive))
 {
+    szaTableModelRaw.reserve(10000);
+
     fillLoggerPatternElements();
     fillLoggerSeverityNames();
 
@@ -44,7 +47,7 @@ void LoggerTableProxyModel::appendRow(const QString &szRowData, bool bAppendToRa
         myItemModel->appendRow(new QStandardItem(szRowDataTrim));
 
     } else {
-        QList<QStandardItem *> myTableRow = parseLogMessage(szRowData);
+        const QList<QStandardItem *> myTableRow = parseLogMessage(szRowDataTrim);
 
         if (myTableRow.isEmpty() == false) {
             myItemModel->appendRow(myTableRow);
@@ -59,7 +62,7 @@ void LoggerTableProxyModel::appendRow(const QString &szRowData, bool bAppendToRa
 void LoggerTableProxyModel::appendRows(const QStringList &szaRowsData, bool bAppendToRawData)
 {
     for (const QString &szRowData : szaRowsData) {
-        this->appendRow(szRowData, bAppendToRawData);
+        appendRow(szRowData, bAppendToRawData);
     }
 }
 
@@ -243,7 +246,7 @@ QString LoggerTableProxyModel::getColumnName(const LoggerEnum::Columns eColumn)
 
 void LoggerTableProxyModel::fillLoggerPatternElements()
 {
-    if (szaLoggerPatternElements.size() != 0) {
+    if (szaLoggerPatternElements.isEmpty() == false) {
         return;
     }
 
@@ -258,7 +261,7 @@ void LoggerTableProxyModel::fillLoggerPatternElements()
 
 void LoggerTableProxyModel::fillLoggerSeverityNames()
 {
-    if (szaLoggerSeverityNames.size() != 0) {
+    if (szaLoggerSeverityNames.isEmpty() == false) {
         return;
     }
 
@@ -280,7 +283,7 @@ void LoggerTableProxyModel::fillLoggerSeverityNames()
 QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szRowData)
 {
     QList<QStandardItem *> myTableRow;
-    myTableRow.reserve(myItemModel->columnCount() + 1);
+    myTableRow.reserve(myItemModel->columnCount() + 1); //52 to 51ms in 8k lines
 
     bool bContinueFromLast = true;
 
@@ -302,6 +305,7 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
 
         myTableRow.append(new QStandardItem(QString::number(++nRowIndexCount) + "*"));
 
+        //copy all columns except message
         for (int nIndex = 1; nIndex < LoggerEnum::COLUMN_MESSAGE; ++nIndex) {
             QStandardItem *myPreviousItem = myItemModel->item(nPreviousRow, nIndex);
 
@@ -312,13 +316,11 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
         }
 
         myTableRow.append(new QStandardItem(szRowData));
-        return myTableRow;
 
     } else {
         myTableRow.append(new QStandardItem(QString::number(++nRowIndexCount)));
 
         int nDataStartIndex = 0;
-        int nDataEndIndex = 0;
 
         for (const patternData &patternDataElement : qAsConst(naLoggerPatternData)) {
 
@@ -326,7 +328,7 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
             const int nStartOffset                          = patternDataElement.nDataStartOffset;
             const QChar cEndSeparator                       = patternDataElement.cEndSeparator;
 
-            if (cEndSeparator == '\0') { //last element
+            if (cEndSeparator == END_SEPARATOR) { //last element
                 myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex + nStartOffset).trimmed().toString()));
 
             } else {
@@ -337,46 +339,50 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
 //                    ++nDataStartIndex;
 //                }
 
+                int nDataEndIndex;
+
                 switch (nCurrentPattern) {
                     case LoggerEnum::PATTERN_TIMESTAMP: {
                         //TODO place date and time in different columns
                         nDataEndIndex = getEndIndexTimestamp(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_THREADID: {
                         nDataEndIndex = getEndIndexThreadId(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_SEVERITY: {
                         nDataEndIndex = getEndIndexSeverity(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_CLASS: {
                         //TODO place line number in another column
                         nDataEndIndex = getEndIndexClass(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_MESSAGE: {
                         nDataEndIndex = getEndIndexMessage(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed().toString()));
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
                         break;
                     }
 
                     case LoggerEnum::COUNT_LOGGER_PATTERN:
                     default:
+                        nDataEndIndex = 0;
                         break;
                 }
+
+                nDataStartIndex = nDataEndIndex + 1;
             }
 
-            nDataStartIndex = nDataEndIndex + 1;
         }
     }
 
@@ -518,7 +524,7 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
         }
 
         if (bLastSegment == true) {
-            patternDataElement.cEndSeparator = '\0';  //3
+            patternDataElement.cEndSeparator = END_SEPARATOR;  //3
 
         } else {
             patternDataElement.cEndSeparator = cEndSeparator;  //3
@@ -538,35 +544,35 @@ void LoggerTableProxyModel::reparseTableData()
     this->setSourceModel(myItemModel);
 }
 
-int LoggerTableProxyModel::getEndIndexClass(const QString &szRowData, int nStartIndex, QChar cEndSeparator)
+int LoggerTableProxyModel::getEndIndexClass(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
 {
     int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
 
     return nEndIndex;
 }
 
-int LoggerTableProxyModel::getEndIndexMessage(const QString &szRowData, int nStartIndex, QChar cEndSeparator)
+int LoggerTableProxyModel::getEndIndexMessage(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
 {
     int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
 
     return nEndIndex;
 }
 
-int LoggerTableProxyModel::getEndIndexSeverity(const QString &szRowData, int nStartIndex, QChar cEndSeparator)
+int LoggerTableProxyModel::getEndIndexSeverity(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
 {
     int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
 
     return nEndIndex;
 }
 
-int LoggerTableProxyModel::getEndIndexThreadId(const QString &szRowData, int nStartIndex, QChar cEndSeparator)
+int LoggerTableProxyModel::getEndIndexThreadId(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
 {
     int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
 
     return nEndIndex;
 }
 
-int LoggerTableProxyModel::getEndIndexTimestamp(const QString &szRowData, int nStartIndex, QChar cEndSeparator)
+int LoggerTableProxyModel::getEndIndexTimestamp(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
 {
     //TODO deal with other timestamp patterns
     int nEndIndex = -1;
@@ -624,6 +630,7 @@ void LoggerTableProxyModel::parseClipboard()
     resetIndex();
 
     createNewItemModel(); //this way is faster: create a new model, insert every row, and set as model in the end
+    szaTableModelRaw.clear();
 
 //#define DEBUG_SPEED
 #ifdef DEBUG_SPEED
@@ -632,10 +639,10 @@ void LoggerTableProxyModel::parseClipboard()
 
     QString szClipboardData = QApplication::clipboard()->text();
 
-    QTextStream myTextStream(&szClipboardData);
+    QTextStream myTextStream(&szClipboardData); //faster than string.split with either text or regex
 
     while (myTextStream.atEnd() == false) {
-        QString szRowData = myTextStream.readLine();
+        const QString szRowData = myTextStream.readLine();
 
         this->appendRow(szRowData);
     }
@@ -658,7 +665,7 @@ void LoggerTableProxyModel::newMessageReceived(const QString &szMessage)
 {
     QMutexLocker myScopedMutex(myMutex);
 
-    QStringList szaMessages = szMessage.split('\n', QString::SkipEmptyParts, Qt::CaseInsensitive);
+    const QStringList szaMessages = szMessage.split('\n', QString::SkipEmptyParts, Qt::CaseInsensitive);
 
     appendRows(szaMessages);
 }

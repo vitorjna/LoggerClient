@@ -31,11 +31,11 @@ void TcpSocketThreadable::connectSocket(const QString &szIpAddress, const quint1
         case QAbstractSocket::HostLookupState:
         case QAbstractSocket::ConnectingState:
         case QAbstractSocket::ConnectedState:
+        case QAbstractSocket::ListeningState:
+        case QAbstractSocket::BoundState:
             return; //already connected, or trying to connect
 
         case QAbstractSocket::UnconnectedState:
-        case QAbstractSocket::BoundState:
-        case QAbstractSocket::ListeningState:
         case QAbstractSocket::ClosingState:
             break;
     }
@@ -54,7 +54,7 @@ void TcpSocketThreadable::disconnectSocket()
 
 void TcpSocketThreadable::readNewMessage()
 {
-    QByteArray caData = this->read(INT16_MAX);
+    const QByteArray caData = this->read(INT16_MAX);
 
     if (caData.size() == 0) {
         //a reading error occurred. Ignore message
@@ -68,7 +68,7 @@ void TcpSocketThreadable::readNewMessage()
 //        qDebug() << "delay" << delay;
 #endif
 
-        QString szMessage = QString::fromLatin1(caData);
+        const QString szMessage = QString::fromLatin1(caData);
         emit newMessage(szMessage);
     }
 }

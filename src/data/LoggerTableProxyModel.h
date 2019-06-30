@@ -96,14 +96,16 @@ private:
     void reparseTableData();
 
     ///Extract elements from message received
-    int getEndIndexClass       (const QString &szRowData, int nStartIndex, QChar cEndSeparator);
-    int getEndIndexMessage     (const QString &szRowData, int nStartIndex, QChar cEndSeparator);
-    int getEndIndexSeverity    (const QString &szRowData, int nStartIndex, QChar cEndSeparator);
-    int getEndIndexThreadId    (const QString &szRowData, int nStartIndex, QChar cEndSeparator);
-    int getEndIndexTimestamp   (const QString &szRowData, int nStartIndex, QChar cEndSeparator);
+    int getEndIndexClass        (const QString &szRowData, int nStartIndex, QChar cEndSeparator) const;
+    int getEndIndexMessage      (const QString &szRowData, int nStartIndex, QChar cEndSeparator) const;
+    int getEndIndexSeverity     (const QString &szRowData, int nStartIndex, QChar cEndSeparator) const;
+    int getEndIndexThreadId     (const QString &szRowData, int nStartIndex, QChar cEndSeparator) const;
+    int getEndIndexTimestamp    (const QString &szRowData, int nStartIndex, QChar cEndSeparator) const;
 
     static QVector<QString>     szaLoggerPatternElements;
     static QVector<QString>     szaLoggerSeverityNames;
+
+    static const QChar          END_SEPARATOR;
 
     LoggerTableItemModel        *myItemModel;
     uint32_t                    nRowIndexCount;

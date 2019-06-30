@@ -32,6 +32,7 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_LOGGER_PATTERN:
         case AppSettings::KEY_ROW_HEIGHT_BIAS:
         case AppSettings::KEY_SERVER_IPv4:
+        case AppSettings::KEY_SERVER_NAME:
         case AppSettings::KEY_SERVER_PORT:
         case AppSettings::KEY_THEME_NAME:
         case AppSettings::KEY_WINDOW_POS_MAIN:
@@ -45,6 +46,7 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
             return GlobalConstants::WIDGET_SOURCE_CODE;
 
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
+        case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
             return GlobalConstants::APPLICATION_OPTIONS;
 
         case COUNT_APP_SETTINGS:
@@ -57,6 +59,9 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
     switch (eKey) {
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
             return GlobalConstants::SETTINGS_FORMAT_EXPORTED_LOGS;
+
+        case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
+            return GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES;
 
         case AppSettings::KEY_SOURCE_LANGUAGE:
             return GlobalConstants::SETTINGS_SOURCE_LANGUAGE;
@@ -84,6 +89,9 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
 
         case AppSettings::KEY_SERVER_IPv4:
             return GlobalConstants::SETTINGS_LABEL_SERVER_IPv4;
+            
+        case AppSettings::KEY_SERVER_NAME:
+            return GlobalConstants::SETTINGS_LABEL_SERVER_NAME;
 
         case AppSettings::KEY_SERVER_PORT:
             return GlobalConstants::SETTINGS_LABEL_SERVER_PORT;

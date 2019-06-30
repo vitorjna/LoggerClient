@@ -1,6 +1,7 @@
 #include "GlobalConstants.h"
 
 const QString   GlobalConstants::SEPARATOR_SETTINGS_LIST            = QStringLiteral("<@>");
+const QString   GlobalConstants::SEPARATOR_SETTINGS_LIST_2          = QStringLiteral("<@@>");
 const QChar     GlobalConstants::SEPARATOR_EXPORTED_TEXT_LINE       = '\n';
 const QChar     GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN     = ' ';
 
@@ -15,6 +16,7 @@ const QString   GlobalConstants::SETTINGS_FOLDER_THEMES             = QStringLit
 ///LoggerClientWidget
 const QString   GlobalConstants::SETTINGS_FONT_SIZE                 = QStringLiteral("FontSize");
 const QString   GlobalConstants::SETTINGS_LABEL_SERVER_IPv4         = QStringLiteral("ServerIPv4");
+const QString   GlobalConstants::SETTINGS_LABEL_SERVER_NAME         = QStringLiteral("ServerName");
 const QString   GlobalConstants::SETTINGS_LABEL_SERVER_PORT         = QStringLiteral("ServerPort");
 const QString   GlobalConstants::SETTINGS_LOGGER_PATTERN            = QStringLiteral("LoggerPattern");
 const QString   GlobalConstants::SETTINGS_ROW_HEIGHT_BIAS           = QStringLiteral("RowHeightBias");
@@ -31,6 +33,7 @@ const QString   GlobalConstants::SETTINGS_SOURCE_LOCATION           = QStringLit
 
 ///Other Options
 const QString   GlobalConstants::SETTINGS_FORMAT_EXPORTED_LOGS      = QStringLiteral("FormatExportedLogs");
+const QString   GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES   = QStringLiteral("LoggerServerAddresses");
 
 const QString   GlobalConstants::FILE_EXTENSION_CPP                 = QStringLiteral(".cpp");
 const QString   GlobalConstants::FILE_EXTENSION_JAVA                = QStringLiteral(".java");

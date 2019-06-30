@@ -12,9 +12,7 @@ OptionsWidget::OptionsWidget(QWidget *parent)
     loadSettings();
 }
 
-OptionsWidget::~OptionsWidget()
-{
-}
+OptionsWidget::~OptionsWidget() = default;
 
 void OptionsWidget::setupUi()
 {
@@ -150,9 +148,10 @@ void OptionsWidget::setupUi()
     this->setLayout(myMainLayout);
     this->setAttribute(Qt::WA_DeleteOnClose, false);
     this->setWindowFlags(Qt::Window  | Qt::CustomizeWindowHint | Qt::WindowSystemMenuHint | Qt::WindowCloseButtonHint);
-    this->resize(600, 600);
+    this->resize(600, 600); //TODO doesn't work with large font sizes
 
     this->setWindowIcon(QIcon(":/icons/themes/icons/appIcon.svg"));
+    this->setWindowTitle(tr("Options"));
 
     this->hide();
 }
@@ -392,9 +391,11 @@ void OptionsWidget::sourceLocationsListItemChanged(int nCurrentItem)
 
 void OptionsWidget::hideEvent(QHideEvent *event)
 {
-    saveSourceCodeLocations(); //when source order is changed, the ListWidget doesn't emit a proper signal. So save the list when hiding/closing the window
+    emit aboutToHide();
 
     QWidget::hideEvent(event);
+
+    saveSourceCodeLocations(); //when source order is changed, the ListWidget doesn't emit a proper signal. So save the list when hiding/closing the window
 }
 
 void OptionsWidget::closeEvent(QCloseEvent *event)
