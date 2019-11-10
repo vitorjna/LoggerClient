@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QDebug>
-#include <QStandardItemModel>
 
 #include "data/StandardItemModel.h"
 

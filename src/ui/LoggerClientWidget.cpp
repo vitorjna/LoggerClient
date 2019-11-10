@@ -5,6 +5,7 @@
 #include "ui/ToastNotificationWidget.h"
 #include "ui/element/PushButtonWithMenu.h"
 #include "ui/modal/OptionsWidget.h"
+#include "ui/widget/LoggerPatternWidget.h"
 #include "ui/widget/NetworkConnectionWidget.h"
 #include "ui/widget/SearchWidget.h"
 #include "util/FileUtils.h"
@@ -14,25 +15,23 @@
 
 //TODO Bug: filter by one column. Then filter by other column, Clear Table button becomes disabled
 //TODO add option to color by thread
-//TODO bug when parsing clipboard or file, end separator is always ' ', and not '[' as it is in the pattern
 //TODO class filter and text search are mutually exclusive. Both act on setFilterRegExp
-//TODO pattern: parse only when pressing return or losing focus
-//TODO pattern: add window for managing patterns
-//TODO add shortcut for ctrl+scroll change text size, alt scroll line height
 //TODO open file and set breakpoint
 //TODO open multiple editor context menu
 //TODO right click on selected cells, copy only that column contents. Good to export XML from multiple lines
 //TODO right click with multiple lines selected: generate "filter by" action for all classes
 //TODO after removing filter OR search text, keep selected index in view (by default it scrolls to the bottom)
 //TODO add default name for log file saving as text
+//TODO add TipWidget (NAM: you can copy and paste from the table. Paste in the format...). Auto hides itself by a checkbox in the OptionsWidget
+//TODO add button to reset patterns to default values
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
+    , IntMutexable(QMutex::NonRecursive)
     , bUsingCustomColumnWidth(false)
     , eCurrentMode(COUNT_LOG_MODE)
     , bOpenFileAfterSavingPending(false)
     , bIsAtBottom(true)
-    , myMutex(new QMutex(QMutex::NonRecursive))
     , myOptionsWidget(new OptionsWidget(this)) //loads current settings on construction. Should load when calling method, but it's good enough for now
 {
 #ifdef DEBUG_STUFF
@@ -112,17 +111,9 @@ void LoggerClientWidget::setupUI()
         myOptionsLayout->setContentsMargins(0, 0, 0, 0);
         {
             //message pattern
-            {
-                labelLoggerPattern = new QLabel(this);
-                labelLoggerPattern->setText(tr("Pattern:"));
+            myLoggerPatternWidget = new LoggerPatternWidget(this);
 
-                comboBoxLoggerPattern = new QComboBox(this);
-                comboBoxLoggerPattern->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
-                comboBoxLoggerPattern->setEditable(true);
-            }
-
-            myOptionsLayout->addWidget(labelLoggerPattern);
-            myOptionsLayout->addWidget(comboBoxLoggerPattern);
+            myOptionsLayout->addWidget(myLoggerPatternWidget);
             myOptionsLayout->addSpacerItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed));
 
             //other options
@@ -130,15 +121,11 @@ void LoggerClientWidget::setupUI()
                 //TODO put these buttons on different places
                 //TODO place filter in search box so it can be edited
                 pushButtonResizeColumns = new QPushButton(this);
-                pushButtonResizeColumns->setText(tr("Resize"));
+                pushButtonResizeColumns->setText(tr("&Resize"));
                 pushButtonResizeColumns->setEnabled(false);
 
-                pushButtonClearFilter = new QPushButton(this);
-                pushButtonClearFilter->setText(tr("Clear filter"));
-                pushButtonClearFilter->setEnabled(false);
-
                 pushButtonClearTable = new QPushButton(this);
-                pushButtonClearTable->setText(tr("Clear table"));
+                pushButtonClearTable->setText(tr("Cl&ear table"));
 
                 pushButtonSaveToFile = new PushButtonWithMenu(this);
                 {
@@ -163,12 +150,11 @@ void LoggerClientWidget::setupUI()
 
                 pushButtonOptions = new QPushButton(this);
                 pushButtonOptions->setCheckable(true);
-                pushButtonOptions->setText(QStringLiteral("Options"));
+                pushButtonOptions->setText(QStringLiteral("&Options"));
             }
 
             myOptionsLayout->addWidget(pushButtonResizeColumns);
             myOptionsLayout->addSpacing(10);
-            myOptionsLayout->addWidget(pushButtonClearFilter);
             myOptionsLayout->addWidget(pushButtonClearTable);
             myOptionsLayout->addWidget(pushButtonSaveToFile);
             myOptionsLayout->addSpacing(10);
@@ -212,8 +198,21 @@ void LoggerClientWidget::setupUI()
         }
         myMainLayout->addWidget(myTableView, INT_MAX);
 
-        mySearchWidget = new SearchWidget(this);
-        myMainLayout->addWidget(mySearchWidget);
+        //filters
+        QHBoxLayout *myFiltersLayout = new QHBoxLayout();
+        myFiltersLayout->setContentsMargins(0, 0, 0, 0);
+        {
+            mySearchWidget = new SearchWidget(this);
+
+            pushButtonClearFilter = new QPushButton(this);
+            pushButtonClearFilter->setText(tr("Clear &filter"));
+            pushButtonClearFilter->setEnabled(false);
+
+            myFiltersLayout->addWidget(mySearchWidget);
+            myFiltersLayout->addWidget(pushButtonClearFilter);
+        }
+        myMainLayout->addLayout(myFiltersLayout);
+
     }
 
 //    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Expanding), myMainLayout->rowCount(), 0);
@@ -222,7 +221,7 @@ void LoggerClientWidget::setupUI()
 
     this->setAcceptDrops(true);
 
-    this->setWindowIcon(QIcon(":/icons/themes/icons/appIcon.svg"));
+    this->setWindowIcon(QIcon(QStringLiteral(":/icons/themes/icons/appIcon.svg")));
 }
 
 void LoggerClientWidget::setupSignalsAndSlots()
@@ -244,7 +243,7 @@ void LoggerClientWidget::setupSignalsAndSlots()
             this,                       SLOT(connectionInProgress()));
 
     //CONNECTION DETAILS
-    connect(myServerConnectionWidget,   SIGNAL(buttonConnectToServerToggled(bool)),
+    connect(myServerConnectionWidget,   SIGNAL(signalButtonConnectToServerToggled(bool)),
             this,                       SLOT(buttonConnectToServerToggled(bool)));
 
     //FILE
@@ -288,11 +287,11 @@ void LoggerClientWidget::setupSignalsAndSlots()
     });
 
     //PATTERN
-    connect(comboBoxLoggerPattern,      &QComboBox::currentTextChanged,
-            this,                       &LoggerClientWidget::loggerPatternEditingFinished);
+    connect(myLoggerPatternWidget,      &LoggerPatternWidget::loggerPatternChangedSignal,
+            this,                       &LoggerClientWidget::loggerPatternChanged);
 
-    connect(this,                       SIGNAL(loggerPatternChanged(QString)),
-            myProxyModel,               SLOT(setLoggerPattern(QString)));
+    connect(this,                       &LoggerClientWidget::loggerPatternChangedSignal,
+            myProxyModel,               &LoggerTableProxyModel::setLoggerPattern);
 
     connect(myTableView->horizontalHeader(), SIGNAL(sectionResized(int, int, int)),
             this,                       SLOT(tableViewHeaderResized(int, int, int)));
@@ -302,9 +301,6 @@ void LoggerClientWidget::setupSignalsAndSlots()
 
     connect(pushButtonResizeColumns,    &QPushButton::clicked,
             this,                       &LoggerClientWidget::resizeColumnsLoosely);
-
-    connect(pushButtonClearFilter,      SIGNAL(clicked(bool)),
-            this,                       SLOT(buttonClickedClearFilter(bool)));
 
     connect(pushButtonClearTable,       SIGNAL(clicked(bool)),
             this,                       SLOT(buttonClickedClearTable(bool)));
@@ -326,25 +322,41 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(mySearchWidget,             SIGNAL(searchTextChanged(QString)),
             this,                       SLOT(searchTextChanged(QString)));
 
+    connect(pushButtonClearFilter,      SIGNAL(clicked(bool)),
+            this,                       SLOT(buttonClickedClearFilter(bool)));
+
 }
 
 void LoggerClientWidget::setupShortcuts()
 {
     QShortcut *shortcutPaste            = new QShortcut(QKeySequence(QStringLiteral("Ctrl+V")), this);
-    connect(shortcutPaste,              SIGNAL(activated()),
-            this,                       SLOT(pasteText()));
+    connect(shortcutPaste,              &QShortcut::activated,
+            this,                       &LoggerClientWidget::pasteText);
 
-    QShortcut *shortcutSearchText       = new QShortcut(QKeySequence(QStringLiteral("Ctrl+F")), this);
-    connect(shortcutSearchText,         SIGNAL(activated()),
-            mySearchWidget,             SLOT(setFocus()));
 
-    QShortcut *shortcutSearchNext       = new QShortcut(QKeySequence(QStringLiteral("F3")), this);
-    connect(shortcutSearchNext,         &QShortcut::activated,
-            mySearchWidget,             &SearchWidget::nextResult);
+    QShortcut *shortcutFontUp           = new QShortcut(QKeySequence(QStringLiteral("Ctrl++")), this, nullptr, nullptr, Qt::ApplicationShortcut);
+    connect(shortcutFontUp,             &QShortcut::activated,
+            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(1);});
 
-    QShortcut *shortcutSearchPrevious   = new QShortcut(QKeySequence(QStringLiteral("Shift+F3")), this);
-    connect(shortcutSearchPrevious,     &QShortcut::activated,
-            mySearchWidget,             &SearchWidget::previousResult);
+    QShortcut *shortcutFontDown         = new QShortcut(QKeySequence(QStringLiteral("Ctrl+-")), this, nullptr, nullptr, Qt::ApplicationShortcut);
+    connect(shortcutFontDown,           &QShortcut::activated,
+            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(-1);});
+
+    QShortcut *shortcutFontReset        = new QShortcut(QKeySequence(QStringLiteral("Ctrl+0")), this, nullptr, nullptr, Qt::ApplicationShortcut);
+    connect(shortcutFontReset,           &QShortcut::activated,
+            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(0);});
+
+    QShortcut *shortcutRowHeightUp      = new QShortcut(QKeySequence(QStringLiteral("Alt++")), this, nullptr, nullptr, Qt::ApplicationShortcut);
+    connect(shortcutRowHeightUp,        &QShortcut::activated,
+            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(1);});
+
+    QShortcut *shortcutRowHeightDown    = new QShortcut(QKeySequence(QStringLiteral("Alt+-")), this, nullptr, nullptr, Qt::ApplicationShortcut);
+    connect(shortcutRowHeightDown,      &QShortcut::activated,
+            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(-1);});
+
+    QShortcut *shortcutRowHeightReset   = new QShortcut(QKeySequence(QStringLiteral("Alt+0")), this, nullptr, nullptr, Qt::ApplicationShortcut);
+    connect(shortcutRowHeightReset,      &QShortcut::activated,
+            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(0);});
 }
 
 void LoggerClientWidget::loadSettings()
@@ -372,25 +384,16 @@ void LoggerClientWidget::loadSettings()
     QString szServerPort = AppSettings::getValue(AppSettings::KEY_SERVER_PORT).toString();
     myServerConnectionWidget->setPort(szServerPort);
 
-    QString szLoggerPatterns = AppSettings::getValue(AppSettings::KEY_LOGGER_PATTERN,
-                                                     QStringLiteral("%d %t [%c{1}] %p - %m")
-                                                     + GlobalConstants::SEPARATOR_SETTINGS_LIST + QStringLiteral("%d [%c{1}] %p - %m")
-                                                     + GlobalConstants::SEPARATOR_SETTINGS_LIST + QStringLiteral("%d %c{1} [%c{1}] %p - %m")
-                                                    ).toString();
-
-    QStringList szaLoggerPatterns = szLoggerPatterns.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
-
-    comboBoxLoggerPattern->addItems(szaLoggerPatterns);
-
-    emit loggerPatternChanged(szaLoggerPatterns.first());
+    loggerPatternChanged(myLoggerPatternWidget->getPattern());
 
     int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
     rowHeightBiasChanged(nRowBias);
 }
 
-void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &szText)
+void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &szText, bool bForce)
 {
-    if (eCurrentMode == eMode) {
+    if (bForce == false
+        && eCurrentMode == eMode) {
         return;
     }
 
@@ -404,11 +407,11 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setEnabled(true);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
 
-            comboBoxLoggerPattern->setEnabled(true);
+            myLoggerPatternWidget->setEnabled(true);
 
             buttonOpenFile->setEnabled(true);
             buttonOpenFile->setChecked(false);
-            buttonOpenFile->setText(tr("Open log file"));
+            buttonOpenFile->setText(tr("Open &log file"));
             break;
 
         case LoggerClientWidget::CLIPBOARD:
@@ -417,10 +420,10 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setEnabled(true);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
 
-            comboBoxLoggerPattern->setEnabled(true);
+            myLoggerPatternWidget->setEnabled(true);
 
             buttonOpenFile->setChecked(false);
-            buttonOpenFile->setText(tr("Open log file"));
+            buttonOpenFile->setText(tr("Open &log file"));
             break;
 
         case LoggerClientWidget::FILE:
@@ -429,10 +432,10 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setEnabled(false);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
 
-            comboBoxLoggerPattern->setEnabled(false);
+            myLoggerPatternWidget->setEnabled(false);
 
             buttonOpenFile->setChecked(true);
-            buttonOpenFile->setText("Close " + szText);
+            buttonOpenFile->setText("C&lose " + szText);
             break;
 
         case LoggerClientWidget::SERVER_CONNECTING: {
@@ -665,7 +668,7 @@ void LoggerClientWidget::buttonOpenFileResult(const QString &szFilename)
 void LoggerClientWidget::fileParsingResult(const int nResult, const QString &szFilename)
 {
     if (nResult == GlobalConstants::SUCCESS) {
-        setLogWidgetMode(FILE, szFilename);
+        setLogWidgetMode(FILE, szFilename, true);
         resizeColumnsIfNeeded(true);
 
     } else {
@@ -875,7 +878,6 @@ void LoggerClientWidget::filterStateChanged(bool bState)
     }
 }
 
-//TODO filter not applying to new messages
 void LoggerClientWidget::searchTextChanged(const QString &szText)
 {
 //    qDebug() << "searchTextChanged:" << szText;
@@ -923,20 +925,9 @@ void LoggerClientWidget::connectionInProgress()
 ////    myTableView->viewport()->update();
 //}
 
-void LoggerClientWidget::loggerPatternEditingFinished(const QString &szLoggerPattern)
+void LoggerClientWidget::loggerPatternChanged(const QString &szLoggerPattern)
 {
-    emit loggerPatternChanged(szLoggerPattern);
-
-    QStringList szaLoggerPatterns;
-    szaLoggerPatterns << szLoggerPattern;
-
-    for (int nIndex = 0; nIndex < comboBoxLoggerPattern->count(); ++nIndex) {
-        if (nIndex != comboBoxLoggerPattern->currentIndex()) {
-            szaLoggerPatterns << comboBoxLoggerPattern->itemText(nIndex);
-        }
-    }
-
-    AppSettings::setValue(AppSettings::KEY_LOGGER_PATTERN, szaLoggerPatterns.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));
+    emit loggerPatternChangedSignal(szLoggerPattern);
 }
 
 void LoggerClientWidget::tableViewHeaderResized(int logicalIndex, int oldSize, int newSize)

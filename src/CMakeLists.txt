@@ -199,6 +199,12 @@ endif()
 #        -Wl,-shared_libgcc \
 #        -Wl,-Bdynamic \
 
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} \
+        -Wl,-s \
+        ")
+endif()
+
 #message("CMAKE_EXE_LINKER_FLAGS: ${CMAKE_EXE_LINKER_FLAGS}")
 
 

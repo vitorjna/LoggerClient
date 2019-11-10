@@ -47,6 +47,9 @@ public:
     static QString getCurrentEditorName();
     static void setCurrentEditor(const QString &szCurrentEditor);
 
+    static QString getCurrentProjectName();
+    static void setCurrentProjectName(const QString &szCurrentProjectName);
+
     static QString getEditorHandling(const SourceCodeEditors eEditor);
 
     static GlobalConstants::ErrorCode openFileInEditor(const SourceCodeEditors eEditor, const QString &szFilenameFullPath, const QString &szLine);

@@ -7,6 +7,8 @@ NetworkConnectionWidget::NetworkConnectionWidget(QWidget *parent)
 {
     setupUi();
     setupSignalsAndSlots();
+
+    setMode(IDLE);
 }
 
 NetworkConnectionWidget::~NetworkConnectionWidget() = default;
@@ -26,7 +28,7 @@ void NetworkConnectionWidget::setMode(const UiMode eUiMode)
             lineEditServerIpV4->setEnabled(true);
             lineEditServerPort->setEnabled(true);
             buttonConnectToServer->setChecked(false);
-            buttonConnectToServer->setText(tr("Connect"));
+            buttonConnectToServer->setText(tr("&Connect"));
             break;
 
         case NetworkConnectionWidget::CONNECTING:
@@ -34,7 +36,7 @@ void NetworkConnectionWidget::setMode(const UiMode eUiMode)
             lineEditServerIpV4->setEnabled(false);
             lineEditServerPort->setEnabled(false);
             buttonConnectToServer->setChecked(true);
-            buttonConnectToServer->setText(tr("Cancel"));
+            buttonConnectToServer->setText(tr("&Cancel"));
             break;
 
         case NetworkConnectionWidget::CONNECTED:
@@ -42,7 +44,7 @@ void NetworkConnectionWidget::setMode(const UiMode eUiMode)
             lineEditServerIpV4->setEnabled(false);
             lineEditServerPort->setEnabled(false);
             buttonConnectToServer->setChecked(true);
-            buttonConnectToServer->setText(tr("Disconnect"));
+            buttonConnectToServer->setText(tr("&Disconnect"));
             break;
 
         case NetworkConnectionWidget::RETRYING:
@@ -50,7 +52,7 @@ void NetworkConnectionWidget::setMode(const UiMode eUiMode)
             lineEditServerIpV4->setEnabled(false);
             lineEditServerPort->setEnabled(false);
             buttonConnectToServer->setChecked(true);
-            buttonConnectToServer->setText(tr("Disconnect"));
+            buttonConnectToServer->setText(tr("&Disconnect"));
             break;
 
         case COUNT_UI_MODE:
@@ -77,15 +79,26 @@ void NetworkConnectionWidget::setupUi()
 {
     QHBoxLayout *myServerConnectionLayout = new QHBoxLayout(this);
     myServerConnectionLayout->setContentsMargins(0, 0, 0, 0);
+    myServerConnectionLayout->setSpacing(0);
     {
         labelConnection = new QLabel(this);
         labelConnection->setText(tr("Connection:"));
 
+        QSizePolicy mySizePolicyLarge;
+        mySizePolicyLarge.setHorizontalStretch(2);
+        mySizePolicyLarge.setHorizontalPolicy(QSizePolicy::Minimum);
+        mySizePolicyLarge.setVerticalPolicy(QSizePolicy::Fixed);
+
+        QSizePolicy mySizePolicySmall;
+        mySizePolicySmall.setHorizontalStretch(1);
+        mySizePolicySmall.setHorizontalPolicy(QSizePolicy::Minimum);
+        mySizePolicySmall.setVerticalPolicy(QSizePolicy::Fixed);
 
         lineEditServerName = new LineEditWidget(this);
         lineEditServerName->setPlaceholderText(tr("Server Name"));
         lineEditServerName->setToolTip(tr("Server Name"));
-        lineEditServerName->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+//        lineEditServerName->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+        lineEditServerName->setSizePolicy(mySizePolicyLarge);
         lineEditServerName->setClearButtonEnabled(true);
         labelConnection->setBuddy(lineEditServerName);
 
@@ -97,7 +110,8 @@ void NetworkConnectionWidget::setupUi()
         lineEditServerIpV4->setPlaceholderText(tr("Server IP"));
         lineEditServerIpV4->setToolTip(tr("Server IP"));
         //                lineEditServerIpV4->setInputMask("000.000.000.000; ");
-        lineEditServerIpV4->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+//        lineEditServerIpV4->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+        lineEditServerIpV4->setSizePolicy(mySizePolicyLarge);
 
         QLabel *labelServerAddressSeparator = new QLabel(this);
         labelServerAddressSeparator->setText(QStringLiteral(":"));
@@ -106,7 +120,8 @@ void NetworkConnectionWidget::setupUi()
         lineEditServerPort->setPlaceholderText(tr("Port"));
         lineEditServerPort->setToolTip(tr("Port"));
 //                lineEditServerPort->setInputMask("00000;");
-        lineEditServerPort->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+//        lineEditServerPort->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
+        lineEditServerPort->setSizePolicy(mySizePolicySmall);
 
 
         buttonConnectToServer = new QPushButton(this);
@@ -116,10 +131,6 @@ void NetworkConnectionWidget::setupUi()
         buttonManageAddresses->setCheckable(true);
         buttonManageAddresses->setText(tr("Manage"));
         buttonManageAddresses->setToolTip(tr("Manage stored addresses"));
-
-        connect(lineEditServerName, SIGNAL(returnPressed()), buttonConnectToServer, SLOT(click()));
-        connect(lineEditServerIpV4,     SIGNAL(returnPressed()), buttonConnectToServer, SLOT(click()));
-        connect(lineEditServerPort,     SIGNAL(returnPressed()), buttonConnectToServer, SLOT(click()));
 
 
         myServerConnectionLayout->addWidget(labelConnection);
@@ -133,24 +144,37 @@ void NetworkConnectionWidget::setupUi()
         myServerConnectionLayout->addWidget(buttonManageAddresses);
     }
 
-    completerConnectionName = new QCompleter(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
+    completerConnectionName = new Completer(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
     completerConnectionName->setCompletionColumn(NetworkAddressesEnum::COLUMN_ADDRESS_NAME);
+    completerConnectionName->setCompletionMode(QCompleter::PopupCompletion);
     completerConnectionName->setCaseSensitivity(Qt::CaseInsensitive);
+    completerConnectionName->setFilterMode(Qt::MatchContains);
     lineEditServerName->setCompleter(completerConnectionName);
 
-    completerServerIpV4 = new QCompleter(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
+    completerServerIpV4 = new Completer(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
     completerServerIpV4->setCompletionColumn(NetworkAddressesEnum::COLUMN_SERVER_IP);
+    completerServerIpV4->setCompletionMode(QCompleter::PopupCompletion);
     completerServerIpV4->setCaseSensitivity(Qt::CaseInsensitive);
+    completerServerIpV4->setFilterMode(Qt::MatchContains);
     lineEditServerIpV4->setCompleter(completerServerIpV4);
 
-    completerServerPort = new QCompleter(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
+    completerServerPort = new Completer(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
     completerServerPort->setCompletionColumn(NetworkAddressesEnum::COLUMN_SERVER_PORT);
+    completerServerPort->setCompletionMode(QCompleter::PopupCompletion);
     completerServerPort->setCaseSensitivity(Qt::CaseInsensitive);
+    completerServerPort->setFilterMode(Qt::MatchContains);
     lineEditServerPort->setCompleter(completerServerPort);
 }
 
 void NetworkConnectionWidget::setupSignalsAndSlots()
 {
+    connect(lineEditServerName,                 &QLineEdit::returnPressed,
+            this,                               &NetworkConnectionWidget::lineEditReturnPressed);
+    connect(lineEditServerIpV4,                 &QLineEdit::returnPressed,
+            this,                               &NetworkConnectionWidget::lineEditReturnPressed);
+    connect(lineEditServerPort,                 &QLineEdit::returnPressed,
+            this,                               &NetworkConnectionWidget::lineEditReturnPressed);
+
     connect(buttonConnectToServer,              &QPushButton::toggled,
             this,                               &NetworkConnectionWidget::buttonConnectToServerToggled);
 
@@ -194,6 +218,17 @@ void NetworkConnectionWidget::completerOptionChosen(const QString &szOption, con
     lineEditServerName->setText(szaRow.at(NetworkAddressesEnum::COLUMN_ADDRESS_NAME));
     lineEditServerIpV4->setText(szaRow.at(NetworkAddressesEnum::COLUMN_SERVER_IP));
     lineEditServerPort->setText(szaRow.at(NetworkAddressesEnum::COLUMN_SERVER_PORT));
+
+    lineEditReturnPressed();
+}
+
+void NetworkConnectionWidget::lineEditReturnPressed()
+{
+    if (lineEditServerIpV4->text().isEmpty() == false
+        && lineEditServerPort->text().isEmpty() == false) {
+
+        buttonConnectToServer->click();
+    }
 }
 
 void NetworkConnectionWidget::buttonManageAddressesToggled(bool bButtonState)
@@ -209,6 +244,12 @@ void NetworkConnectionWidget::buttonManageAddressesToggled(bool bButtonState)
     }
 }
 
+void NetworkConnectionWidget::buttonConnectToServerToggled(bool bButtonState)
+{
+    emit signalButtonConnectToServerToggled(bButtonState);
+    buttonConnectToServer->setFocus(); //in case this slot was triggered programmatically
+}
+
 void NetworkConnectionWidget::lineEditServerNameEdited(const QString &szConnectionName)
 {
     if (szConnectionName.isEmpty() == true) {
@@ -216,18 +257,19 @@ void NetworkConnectionWidget::lineEditServerNameEdited(const QString &szConnecti
         lineEditServerPort->clear();
     }
 
-    qDebug() << myNetworkAddressesManagerWidget->getMatches(szConnectionName, NetworkAddressesEnum::COLUMN_ADDRESS_NAME);
+    qDebug() << myNetworkAddressesManagerWidget->getMatches(szConnectionName, NetworkAddressesEnum::COLUMN_ADDRESS_NAME, Qt::MatchContains);
 }
 
 void NetworkConnectionWidget::lineEditServerIpV4Edited(const QString &szServerIpV4)
 {
-    //TODO when one of these is edited, show the matching suggestion in the other: search name, show suggested name there, and ip and port in the other line edits
-    qDebug() << myNetworkAddressesManagerWidget->getMatches(szServerIpV4, NetworkAddressesEnum::COLUMN_SERVER_IP);
+    lineEditServerName->clear(); //NOTE may cause problems if clearing when not wanted. Works so far
+
+    qDebug() << myNetworkAddressesManagerWidget->getMatches(szServerIpV4, NetworkAddressesEnum::COLUMN_SERVER_IP, Qt::MatchContains);
 }
 
 void NetworkConnectionWidget::lineEditServerPortEdited(const QString &szServerPort)
 {
-    qDebug() << myNetworkAddressesManagerWidget->getMatches(szServerPort, NetworkAddressesEnum::COLUMN_SERVER_PORT);
+    qDebug() << myNetworkAddressesManagerWidget->getMatches(szServerPort, NetworkAddressesEnum::COLUMN_SERVER_PORT, Qt::MatchContains);
 }
 
 void NetworkConnectionWidget::connectionRequested(const QString &szAddressName)

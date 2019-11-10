@@ -45,32 +45,28 @@ QVariant NetworkAddressesModel::data(const QModelIndex &index, int role) const
             if (index.column() == NetworkAddressesEnum::COLUMN_SERVER_IP
                 || index.column() == NetworkAddressesEnum::COLUMN_SERVER_PORT) {
 
-                static const QVariant myAlignTopCenter(Qt::AlignVCenter | Qt::AlignHCenter);
-                return myAlignTopCenter;
+                return Qt::AlignCenter;
 
             } else {
-                static const QVariant myAlignTopLeft(Qt::AlignVCenter | Qt::AlignLeft);
-                return myAlignTopLeft;
+                static const QVariant myAlignCenterLeft(Qt::AlignVCenter | Qt::AlignLeft);
+                return myAlignCenterLeft;
             }
 
         case Qt::BackgroundRole: {
-            static const QColor myColorError(192, 32, 32, 192);
-            static const QBrush myBrush(myColorError);
-
             switch (static_cast<NetworkAddressesEnum::Columns>(index.column())) {
                 case NetworkAddressesEnum::COLUMN_ADDRESS_NAME:
                     break;
 
                 case NetworkAddressesEnum::COLUMN_SERVER_IP:
                     if (NetworkUtils::isIpV4Address(this->item(index.row(), NetworkAddressesEnum::COLUMN_SERVER_IP)->text()) == false) {
-                        return myBrush;
+                        return myBrushError;
                     }
 
                     break;
 
                 case NetworkAddressesEnum::COLUMN_SERVER_PORT:
                     if (NetworkUtils::isValidPort(this->item(index.row(), NetworkAddressesEnum::COLUMN_SERVER_PORT)->text()) == false) {
-                        return myBrush;
+                        return myBrushError;
                     }
 
                     break;

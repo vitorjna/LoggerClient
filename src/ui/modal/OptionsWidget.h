@@ -17,6 +17,8 @@
 #include <QSpinBox>
 #include <QStyle>
 
+#include "ui/widget/SourceCodeLocationWidget.h"
+
 class OptionsWidget : public QWidget
 {
     Q_OBJECT
@@ -25,35 +27,32 @@ public:
     explicit OptionsWidget(QWidget *parent = nullptr);
     ~OptionsWidget() override;
 
+    void fontSizeChange(int nAmount);
+
+    void rowHeightBiasChange(int nAmount);
+
 private:
     void setupUi();
     void setupSignalsAndSlots();
     void loadSettings();
 
     QStringList loadThemeChoices();
-    void saveSourceCodeLocations();
 
-    QLabel                      *labelThemeChoice{};
-    QComboBox                   *comboBoxSupportedLanguages{};
     QComboBox                   *comboBoxThemeChoice{};
+    QSpinBox                    *spinBoxFontSize{};
+    QSpinBox                    *spinBoxRowHeightBias{};
 
-    QLabel                      *labelFormatExportedLogs{};
     QCheckBox                   *checkBoxFormatExportedLogs{};
 
-    QLabel                      *labelFontSize{};
-    QSpinBox                    *spinBoxFontSize{};
-
-    QLabel                      *labelRowHeightBias{};
-    QSpinBox                    *spinBoxRowHeightBias{};
+    QComboBox                   *comboBoxSupportedLanguages{};
 
     QComboBox                   *comboBoxCodeEditorNames{};
     QLineEdit                   *lineEditEditorLocation{};
     QPushButton                 *pushButtonEditorLocationPick{};
     QLineEdit                   *lineEditEditorHandling{};
 
-    QPushButton                 *pushButtonSourceCodeLocationAdd{};
-    QPushButton                 *pushButtonSourceCodeLocationRemove{};
-    QListWidget                 *listWidgetSourceCodeLocations{};
+    QComboBox                   *comboBoxActiveProjectName{};
+    SourceCodeLocationWidget    *mySourceCodeLocationWidget{};
 
     QDialogButtonBox            *buttonBoxCloseWindow{};
 
@@ -74,14 +73,9 @@ protected slots:
     void codeEditorSelectionChanged(const QString &szNewEditor);
     void codeEditorLocationChanged(const QString &szNewLocation);
 
+    void activeProjectNameSelectionChanged(const QString &szProjectName);
+
     void buttonEditorLocationPickClicked(bool bState);
-    void buttonEditorLocationPickResult(const QString &szFile);
-
-    void buttonAddLocationClicked(bool bState);
-    void buttonAddLocationResult(const QString &szFolder);
-    void buttonRemoveLocationClicked(bool bState);
-
-    void sourceLocationsListItemChanged(int nCurrentItem);
 
 //reimplemented
 protected:

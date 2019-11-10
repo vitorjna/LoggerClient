@@ -11,7 +11,6 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
-#include <QMutex>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -21,16 +20,18 @@
 #include <QWidget>
 
 #include "application/GlobalConstants.h"
+#include "interface/IntMutexable.h"
 
 class ChannelSocketClient;
 class LoggerTableProxyModel;
+class LoggerPatternWidget;
 class LoggerTreeView;
 class NetworkConnectionWidget;
 class OptionsWidget;
 class PushButtonWithMenu;
 class SearchWidget;
 
-class LoggerClientWidget : public QWidget
+class LoggerClientWidget : public QWidget, public IntMutexable
 {
     Q_OBJECT
     QThread myWorkerThread;
@@ -67,7 +68,7 @@ private:
     void setupShortcuts();
     void loadSettings();
 
-    void setLogWidgetMode(const LogMode eMode, const QString &szText = QStringLiteral(""));
+    void setLogWidgetMode(const LogMode eMode, const QString &szText = QStringLiteral(""), bool bForce = false);
 
     void selectFocus();
     void updateButtonsRowCountDependent(LogMode eNewMode = COUNT_LOG_MODE);
@@ -83,7 +84,6 @@ private:
     QString                 szSavedLogFile;
     bool                    bOpenFileAfterSavingPending;
     bool                    bIsAtBottom;
-    QMutex                  *myMutex;
 
     ///elements
     ChannelSocketClient     *myChannelSocketClient;
@@ -92,11 +92,9 @@ private:
 
     QPushButton             *buttonOpenFile{};
 
-    QLabel                  *labelLoggerPattern{};
-    QComboBox               *comboBoxLoggerPattern{};
+    LoggerPatternWidget     *myLoggerPatternWidget{};
 
     QPushButton             *pushButtonResizeColumns{};
-    QPushButton             *pushButtonClearFilter{};
     QPushButton             *pushButtonClearTable{};
     PushButtonWithMenu      *pushButtonSaveToFile{};
     QVector<QAction *>      myActionsSaveToFile;
@@ -108,6 +106,7 @@ private:
     LoggerTreeView          *myTableView{};
 
     SearchWidget            *mySearchWidget{};
+    QPushButton             *pushButtonClearFilter{};
 
 protected slots:
     void buttonConnectToServerToggled(bool bButtonState);
@@ -143,7 +142,7 @@ private slots:
     void connectionInProgress();
 //    void newMessageReceived(const QString &szMessage);
 
-    void loggerPatternEditingFinished(const QString &szLoggerPattern);
+    void loggerPatternChanged(const QString &szLoggerPattern);
 
     void tableViewHeaderResized(int logicalIndex, int oldSize, int newSize);
 
@@ -155,7 +154,7 @@ private slots:
 signals:
     void clearModel();
 
-    void loggerPatternChanged(QString);
+    void loggerPatternChangedSignal(QString);
     void parseFile(QString);
     void parseClipboard();
 

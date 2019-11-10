@@ -11,7 +11,10 @@ void ToastNotificationWidget::showMessage(QWidget *myContainer, const QString &s
     myWidget->labelMessage->setText(szMessage);
     myWidget->adjustSize();
 
-    if (myContainer != nullptr) {
+    if (myContainer == nullptr) { //TODO toasts don't work if the container is not visible yet. They're also not mapping correctly to the desktop as a fallback
+        myWidget->move(myContainer->mapToGlobal(qApp->desktop()->screen()->rect().center()));
+
+    } else {
         myWidget->move(myContainer->mapToGlobal(myContainer->rect().center()) - myWidget->rect().center());
     }
 

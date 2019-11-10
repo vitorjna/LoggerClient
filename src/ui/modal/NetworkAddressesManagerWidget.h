@@ -30,7 +30,7 @@ public:
 
     QStringList getRow(const QString &szFind, const NetworkAddressesEnum::Columns eColumn);
 
-    QStringList getMatches(const QString &szFind, const NetworkAddressesEnum::Columns eColumn);
+    QStringList getMatches(const QString &szFind, const NetworkAddressesEnum::Columns eColumn, const Qt::MatchFlags eMatchFlag = Qt::MatchStartsWith);
 
     inline QStandardItemModel *getModel() const { return tableModelAddresses; }
 

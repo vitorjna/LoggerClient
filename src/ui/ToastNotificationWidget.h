@@ -2,6 +2,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QDesktopWidget>
 #include <QLabel>
 #include <QTimer>
 #include <QTimerEvent>

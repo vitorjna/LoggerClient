@@ -1,7 +1,6 @@
 #pragma once
 
 #include <QAction>
-#include <QCompleter>
 #include <QDebug>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -9,6 +8,7 @@
 #include <QPushButton>
 #include <QToolButton>
 
+#include "ui/element/Completer.h"
 #include "ui/element/LineEditWidget.h"
 #include "ui/modal/NetworkAddressesManagerWidget.h"
 
@@ -63,14 +63,16 @@ private:
     QPushButton                     *buttonConnectToServer{};
     QPushButton                     *buttonManageAddresses{};
 
-    QCompleter                      *completerConnectionName{};
-    QCompleter                      *completerServerIpV4{};
-    QCompleter                      *completerServerPort{};
+    Completer                       *completerConnectionName{};
+    Completer                       *completerServerIpV4{};
+    Completer                       *completerServerPort{};
 
     NetworkAddressesManagerWidget   *myNetworkAddressesManagerWidget{};
 
 protected slots:
+    void lineEditReturnPressed();
     void buttonManageAddressesToggled(bool bButtonState);
+    void buttonConnectToServerToggled(bool bButtonState);
 
     void lineEditServerNameEdited(const QString &szConnectionName);
     void lineEditServerIpV4Edited(const QString &szServerIpV4);
@@ -79,7 +81,7 @@ protected slots:
     void connectionRequested(const QString &szAddressName);
 
 signals:
-    void buttonConnectToServerToggled(bool);
+    void signalButtonConnectToServerToggled(bool);
 
     //reimplemented
 protected:

@@ -1,27 +1,62 @@
 #include "AppSettings.h"
 #include "application/GlobalConstants.h"
 
-QSettings *AppSettings::mySettings = AppSettings::initQSettings();
-
 void AppSettings::setValue(const AppSettings::SETTINGS eKey, const QVariant &myValue)
 {
-    mySettings->beginGroup(getKeyGroup(eKey));
-    mySettings->setValue(getKeyString(eKey), myValue);
-    mySettings->endGroup();
+    getMySettings()->beginGroup(getKeyGroup(eKey));
+    getMySettings()->setValue(getKeyString(eKey), myValue);
+    getMySettings()->endGroup();
 }
 
 QVariant AppSettings::getValue(const AppSettings::SETTINGS eKey, const QVariant &myDefaultValue)
 {
-    mySettings->beginGroup(getKeyGroup(eKey));
-    QVariant myValue = mySettings->value(getKeyString(eKey), myDefaultValue);
-    mySettings->endGroup();
+    getMySettings()->beginGroup(getKeyGroup(eKey));
+    QVariant myValue = getMySettings()->value(getKeyString(eKey), myDefaultValue);
+    getMySettings()->endGroup();
 
     return myValue;
 }
 
-QSettings *AppSettings::initQSettings()
+QVariant AppSettings::getDefaultValue(const AppSettings::SETTINGS eKey)
 {
-    QSettings *mySettings = new QSettings(GlobalConstants::SETTINGS_FILE_NAME, QSettings::IniFormat);
+    switch (eKey) {
+        case AppSettings::KEY_LOGGER_PATTERN:
+            return QVariant("C++" + GlobalConstants::SEPARATOR_SETTINGS_LIST + QStringLiteral("%d %t [%c{1}] %p - %m"));
+
+        case AppSettings::KEY_LOGGER_PATTERN_LIST:
+            return QVariant("C++" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %t [%c{1}] %p - %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
+                            + "C++ exported" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %t %c{1} %p %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
+                            + "Java" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d [%c{1}] %p - %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
+                            + "Other" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %c{1} [%c{1}] %p - %m");
+
+        case AppSettings::KEY_FONT_SIZE:
+            return QVariant(9);
+
+        case AppSettings::KEY_ROW_HEIGHT_BIAS:
+            return QVariant(0);
+
+        case AppSettings::KEY_THEME_NAME:
+            return QVariant("Dark Orange");
+
+        case AppSettings::KEY_SERVER_IPv4:
+        case AppSettings::KEY_SERVER_NAME:
+        case AppSettings::KEY_SERVER_PORT:
+        case AppSettings::KEY_WINDOW_POS_MAIN:
+        case AppSettings::KEY_CODE_EDITOR_LOCATION:
+        case AppSettings::KEY_CODE_EDITOR_NAME:
+        case AppSettings::KEY_CODE_SOURCE_LANGUAGE:
+        case AppSettings::KEY_CODE_SOURCE_LOCATION:
+        case AppSettings::KEY_CODE_SOURCE_PROJECT:
+        case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
+        case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
+        case AppSettings::COUNT_APP_SETTINGS:
+            return QVariant();
+    }
+}
+
+QSettings *AppSettings::getMySettings()
+{
+    static QSettings *mySettings = new QSettings(GlobalConstants::SETTINGS_FILE_NAME, QSettings::IniFormat);
     return mySettings;
 }
 
@@ -41,11 +76,13 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
 //        case AppSettings::KEY_CODE_EDITOR_HANDLING:
         case AppSettings::KEY_CODE_EDITOR_LOCATION:
         case AppSettings::KEY_CODE_EDITOR_NAME:
-        case AppSettings::KEY_SOURCE_LANGUAGE:
-        case AppSettings::KEY_SOURCE_LOCATION:
+        case AppSettings::KEY_CODE_SOURCE_LANGUAGE:
+        case AppSettings::KEY_CODE_SOURCE_LOCATION:
+        case AppSettings::KEY_CODE_SOURCE_PROJECT:
             return GlobalConstants::WIDGET_SOURCE_CODE;
 
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
+        case AppSettings::KEY_LOGGER_PATTERN_LIST:
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
             return GlobalConstants::APPLICATION_OPTIONS;
 
@@ -63,11 +100,14 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
             return GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES;
 
-        case AppSettings::KEY_SOURCE_LANGUAGE:
-            return GlobalConstants::SETTINGS_SOURCE_LANGUAGE;
+        case AppSettings::KEY_CODE_SOURCE_LANGUAGE:
+            return GlobalConstants::SETTINGS_CODE_SOURCE_LANGUAGE;
 
-        case AppSettings::KEY_SOURCE_LOCATION:
-            return GlobalConstants::SETTINGS_SOURCE_LOCATION;
+        case AppSettings::KEY_CODE_SOURCE_LOCATION:
+            return GlobalConstants::SETTINGS_CODE_SOURCE_LOCATION;
+
+        case AppSettings::KEY_CODE_SOURCE_PROJECT:
+            return GlobalConstants::SETTINGS_CODE_SOURCE_PROJECT;
 
 //        case AppSettings::KEY_CODE_EDITOR_HANDLING:
 //            return GlobalConstants::SETTINGS_CODE_EDITOR_HANDLING;
@@ -84,12 +124,15 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_LOGGER_PATTERN:
             return GlobalConstants::SETTINGS_LOGGER_PATTERN;
 
+        case AppSettings::KEY_LOGGER_PATTERN_LIST:
+            return GlobalConstants::SETTINGS_LOGGER_PATTERN_LIST;
+
         case AppSettings::KEY_ROW_HEIGHT_BIAS:
             return GlobalConstants::SETTINGS_ROW_HEIGHT_BIAS;
 
         case AppSettings::KEY_SERVER_IPv4:
             return GlobalConstants::SETTINGS_LABEL_SERVER_IPv4;
-            
+
         case AppSettings::KEY_SERVER_NAME:
             return GlobalConstants::SETTINGS_LABEL_SERVER_NAME;
 

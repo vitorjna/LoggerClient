@@ -22,7 +22,7 @@ QColor LoggerTableItemModel::getColorForLevel(const QString &szLevel) const
     static const QColor myColorUnknown(Qt::gray);
 
     //TODO place colors in a class, as statics
-    switch (static_cast<LoggerEnum::LoggerSeverity>(LoggerTableProxyModel::getLogSeverityFromName(szLevel))) {
+    switch (static_cast<LoggerEnum::LoggerSeverity>(LoggerTableProxyModel::getLogSeverityFromName(szLevel.trimmed()))) {
         case LoggerEnum::TRACE:
             return myColorTrace;
 
@@ -41,9 +41,8 @@ QColor LoggerTableItemModel::getColorForLevel(const QString &szLevel) const
         case LoggerEnum::FATAL:
             return myColorFatal;
 
-        case LoggerEnum::NONE:
+//        case LoggerEnum::NONE:
         case LoggerEnum::COUNT_LOGGER_SEVERITY:
-        default:
             return myColorUnknown;
     }
 }
@@ -63,19 +62,28 @@ QVariant LoggerTableItemModel::data(const QModelIndex &index, int role) const
 
         case Qt::BackgroundRole:
             if (this->columnCount() > 1) {
-                if (this->item(index.row(), myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_CLASS))->text().startsWith(QLatin1String("LoggerCppDK"))) {
-                    static const QBrush myBackgroundColorHighlight(QColor(255, 64, 64, 224));
-                    return myBackgroundColorHighlight;
+                int nColumnClassPos = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_CLASS);
 
-                } else {
-                    QStandardItem *myStandardItem = this->item(index.row(), myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_SEVERITY));
+                if (nColumnClassPos != -1) {
+                    if (this->item(index.row(), nColumnClassPos)->text().startsWith(QLatin1String("LoggerCppDK"))) {
+                        static const QBrush myBackgroundColorHighlight(QColor(255, 64, 64, 224));
+                        return myBackgroundColorHighlight;
 
-                    const QColor color = getColorForLevel(myStandardItem->text());
-                    return QBrush(color);
+                    } else {
+                        int nColumnLevelPos = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_SEVERITY);
+
+                        if (nColumnLevelPos != -1) {
+                            const QStandardItem *myStandardItem = this->item(index.row(), nColumnLevelPos);
+
+                            const QColor color = getColorForLevel(myStandardItem->text());
+                            return QBrush(color);
+                        }
+                    }
                 }
             }
 
-            break;
+            static const QBrush myBackgroundColor(QColor(32, 32, 32));
+            return myBackgroundColor;
 
         case Qt::ForegroundRole:
             static const QBrush myForegroundColor(QColor(224, 224, 224));

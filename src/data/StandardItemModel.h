@@ -32,6 +32,10 @@ public:
         this->nSortColumn = nSortColumn;
     }
 
+protected:
+    QColor myColorError;
+    QBrush myBrushError;
+
 private:
     void setupSignalsAndSlots();
 

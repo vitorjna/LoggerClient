@@ -3,12 +3,13 @@
 
 TcpSocketThreadable::TcpSocketThreadable(QObject *parent)
     : QTcpSocket(nullptr) //parent removed, to allow moveToThread
-    , myMutex(new QMutex(QMutex::NonRecursive))
+    , IntMutexable(QMutex::NonRecursive)
     , nTimeout(3000)
 {
     Q_UNUSED(parent)
 
     setSocketOption(QAbstractSocket::LowDelayOption, 1);
+    setProxy(QNetworkProxy::NoProxy); //TODO make proxy usage as an option
 
     QObject::connect(this, &TcpSocketThreadable::readyRead,
                      this, &TcpSocketThreadable::readNewMessage);
@@ -16,7 +17,6 @@ TcpSocketThreadable::TcpSocketThreadable(QObject *parent)
 
 TcpSocketThreadable::~TcpSocketThreadable()
 {
-    MemoryUtils::deleteMutex(myMutex);
 }
 
 void TcpSocketThreadable::connectSocket(const QString &szIpAddress, const quint16 nPort)
