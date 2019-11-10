@@ -14,6 +14,7 @@ public:
         ///LoggerClientWidget
         KEY_FONT_SIZE,
         KEY_LOGGER_PATTERN,
+        KEY_LOGGER_PATTERN_LIST,
         KEY_ROW_HEIGHT_BIAS,
         KEY_SERVER_IPv4,
         KEY_SERVER_NAME,
@@ -25,8 +26,9 @@ public:
 //        KEY_CODE_EDITOR_HANDLING,
         KEY_CODE_EDITOR_LOCATION,
         KEY_CODE_EDITOR_NAME,
-        KEY_SOURCE_LANGUAGE,
-        KEY_SOURCE_LOCATION,
+        KEY_CODE_SOURCE_LANGUAGE,
+        KEY_CODE_SOURCE_LOCATION,
+        KEY_CODE_SOURCE_PROJECT,
 
         ///Other Options
         KEY_FORMAT_EXPORTED_LOGS,
@@ -39,10 +41,10 @@ public:
 
     static QVariant getValue(const AppSettings::SETTINGS eKey, const QVariant &myDefaultValue = QVariant());
 
-private:
-    static QSettings *mySettings;
+    static QVariant getDefaultValue(const AppSettings::SETTINGS eKey);
 
-    static QSettings *initQSettings();
+private:
+    static QSettings *getMySettings();
 
     static QString getKeyGroup(const AppSettings::SETTINGS eKey);
 

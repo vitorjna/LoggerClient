@@ -35,9 +35,9 @@ QStringList NetworkAddressesManagerWidget::getRow(const QString &szFind, const N
     return szaMatches;
 }
 
-QStringList NetworkAddressesManagerWidget::getMatches(const QString &szFind, const NetworkAddressesEnum::Columns eColumn)
+QStringList NetworkAddressesManagerWidget::getMatches(const QString &szFind, const NetworkAddressesEnum::Columns eColumn, const Qt::MatchFlags eMatchFlag)
 {
-    QList<QStandardItem *> myMatches = tableModelAddresses->findItems(szFind, Qt::MatchStartsWith, eColumn);
+    QList<QStandardItem *> myMatches = tableModelAddresses->findItems(szFind, eMatchFlag, eColumn);
 
     if (myMatches.isEmpty() == true) {
         return QStringList();
@@ -194,7 +194,7 @@ void NetworkAddressesManagerWidget::setupUi()
         lineEditServerPort->setPlaceholderText(tr("Port"));
         lineEditServerPort->setToolTip(tr("Port"));
 
-        pushButtonSaveAddress = new QPushButton();
+        pushButtonSaveAddress = new QPushButton(this);
         pushButtonSaveAddress->setCheckable(false);
         pushButtonSaveAddress->setText(tr("Save"));
 
@@ -240,7 +240,7 @@ void NetworkAddressesManagerWidget::setupUi()
 
     myMainLayout->addLayout(myEditsLayout, nCurrentRow, 0);
     ++nCurrentRow;
-    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed), 0, 1);
+//    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed), 0, 1);
     myMainLayout->addWidget(tableViewAddresses, nCurrentRow, 0, 2, -1);
 
     this->setLayout(myMainLayout);
@@ -287,7 +287,7 @@ void NetworkAddressesManagerWidget::loadSettings()
             const QStringList szaNetworkAddress = szaNetworkAddresses.at(nRow).split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
 
             if (szaNetworkAddress.size() != NetworkAddressesEnum::COUNT_TABLE_COLUMNS) {
-                ToastNotificationWidget::showMessage(this, tr("Could not parse address: ") + szaNetworkAddress.join(GlobalConstants::SEPARATOR_SETTINGS_LIST_2), ToastNotificationWidget::ERROR, 3000);
+                ToastNotificationWidget::showMessage(this, tr("Could not parse address: ") + szaNetworkAddresses.at(nRow), ToastNotificationWidget::ERROR, 3000);
                 continue;
             }
 
@@ -311,7 +311,7 @@ void NetworkAddressesManagerWidget::saveSettings()
         QStringList szaNetworkAddress;
 
         for (int nColumn = 0; nColumn < NetworkAddressesEnum::COUNT_TABLE_COLUMNS; ++nColumn) {
-            QString szText = tableModelAddresses->item(nRow, nColumn)->text();
+            const QString szText = tableModelAddresses->item(nRow, nColumn)->text();
 
             if (szText.trimmed().isEmpty() == true) {
                 break;

@@ -7,6 +7,7 @@
 #include <QLineEdit>
 #include <QObject>
 #include <QPushButton>
+#include <QShortcut>
 #include <QStyle>
 
 class SearchWidget : public QWidget
@@ -26,6 +27,7 @@ public:
 private:
     void setupUi();
     void setupSignalsAndSlots();
+    void setupShortcuts();
 
     QLabel          *labelSearchText{};
     QLineEdit       *lineEditSearchText{};
@@ -39,6 +41,8 @@ signals:
 public slots:
     void previousResult();
     void nextResult();
+
+    void focusAndSelect();
 
 //reimplemented
 protected:

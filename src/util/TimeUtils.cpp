@@ -9,7 +9,7 @@ void TimeUtils::startTimer()
 
 int64_t TimeUtils::getTimeMilliseconds(bool bResetTimer)
 {
-    int64_t llTimeElapsed = myTimer->elapsed();
+    const int64_t llTimeElapsed = myTimer->elapsed();
 
     if (bResetTimer == true) {
         myTimer->restart();
@@ -20,7 +20,7 @@ int64_t TimeUtils::getTimeMilliseconds(bool bResetTimer)
 
 int64_t TimeUtils::getTimeNanoseconds(bool bResetTimer)
 {
-    int64_t llTimeElapsed = myTimer->nsecsElapsed();
+    const int64_t llTimeElapsed = myTimer->nsecsElapsed();
 
     if (bResetTimer == true) {
         myTimer->restart();

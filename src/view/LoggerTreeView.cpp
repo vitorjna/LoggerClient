@@ -15,11 +15,11 @@ LoggerTreeView::~LoggerTreeView()
 QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
 {
     if (nBottom == -1) {
-        nBottom = this->model()->rowCount() - 1;
+        nBottom = model()->rowCount() - 1;
     }
 
     if (nRight == -1) {
-        nRight = this->model()->columnCount() - 1;
+        nRight = model()->columnCount() - 1;
     }
 
     //remove the line index column
@@ -43,7 +43,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
     }
 
     QStringList szSelectionContents;
-    szSelectionContents.reserve(100 * (nBottom - nTop));
+    szSelectionContents.reserve(nBottom - nTop);
 
     for (int nRow = nTop; nRow <= nBottom; ++nRow) {
         QString szRowContents; //TODO could use a QStringList and then join
@@ -57,7 +57,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
 
             } else {
                 if (bFormatExportedLogs == true) {
-                    szRowContents.append(szCellValue.leftJustified(naMaxSizes.at(nCol - nLeft), GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN)); //using spaces as separator. Using \t would change the message structure
+                    szRowContents.append(szCellValue.leftJustified(naMaxSizes[nCol - nLeft], GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN)); //using spaces as separator. Using \t would change the message structure
 
                 } else {
                     szRowContents.append(szCellValue + GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN);
@@ -79,7 +79,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
 int LoggerTreeView::getColumnMaxCharCount(const int nCol, const int nRowTop, int nRowBottom, bool bFixOutliers)
 {
     if (nRowBottom == -1) {
-        nRowBottom = this->model()->rowCount() - 1;
+        nRowBottom = model()->rowCount() - 1;
     }
 
     int nMaxSize = -1;
@@ -94,7 +94,7 @@ int LoggerTreeView::getColumnMaxCharCount(const int nCol, const int nRowTop, int
 
         std::sort(naMaxSizes.begin(), naMaxSizes.end());
 
-        nMaxSize = naMaxSizes.at(qRound(naMaxSizes.size() * 0.95));
+        nMaxSize = naMaxSizes[qRound(naMaxSizes.size() * 0.95)];
 
     } else {
         for (int nRow = nRowTop; nRow <= nRowBottom; ++nRow) {

@@ -1,6 +1,7 @@
 #include "LoggerTableProxyModel.h"
 #include "application/SourceCodeHandler.h"
 #include "data/LoggerTableItemModel.h"
+#include "data/SourceCodeLocationsModel.h"
 #include "ui/LoggerClientWidget.h"
 #include "ui/ToastNotificationWidget.h"
 #include "util/FileUtils.h"
@@ -9,13 +10,13 @@
 
 QVector<QString> LoggerTableProxyModel::szaLoggerPatternElements;
 QVector<QString> LoggerTableProxyModel::szaLoggerSeverityNames;
-const QChar      LoggerTableProxyModel::END_SEPARATOR{'\0'};
+const QChar      LoggerTableProxyModel::SEPARATOR_END{'\0'};
 
 LoggerTableProxyModel::LoggerTableProxyModel(QObject *parent)
     : QSortFilterProxyModel(parent)
+    , IntMutexable(QMutex::NonRecursive)
     , myItemModel(nullptr)
     , nRowIndexCount(0)
-    , myMutex(new QMutex(QMutex::NonRecursive))
 {
     szaTableModelRaw.reserve(10000);
 
@@ -25,11 +26,6 @@ LoggerTableProxyModel::LoggerTableProxyModel(QObject *parent)
     createNewItemModel(true);
 }
 
-LoggerTableProxyModel::~LoggerTableProxyModel()
-{
-    MemoryUtils::deleteMutex(myMutex);
-}
-
 int LoggerTableProxyModel::getLogSeverityFromName(const QString &szSeverity)
 {
     return szaLoggerSeverityNames.indexOf(szSeverity);
@@ -37,17 +33,15 @@ int LoggerTableProxyModel::getLogSeverityFromName(const QString &szSeverity)
 
 void LoggerTableProxyModel::appendRow(const QString &szRowData, bool bAppendToRawData)
 {
-    const QString szRowDataTrim = szRowData.trimmed();
-
-    if (szRowDataTrim.isEmpty() == true) {
+    if (szRowData.trimmed().isEmpty() == true) {
         return;
     }
 
     if (szLoggerPattern.isEmpty() == true) {
-        myItemModel->appendRow(new QStandardItem(szRowDataTrim));
+        myItemModel->appendRow(new QStandardItem(szRowData));
 
     } else {
-        const QList<QStandardItem *> myTableRow = parseLogMessage(szRowDataTrim);
+        const QList<QStandardItem *> myTableRow = parseLogMessage(szRowData);
 
         if (myTableRow.isEmpty() == false) {
             myItemModel->appendRow(myTableRow);
@@ -55,7 +49,7 @@ void LoggerTableProxyModel::appendRow(const QString &szRowData, bool bAppendToRa
     }
 
     if (bAppendToRawData) {
-        szaTableModelRaw.append(szRowDataTrim);
+        szaTableModelRaw.append(szRowData);
     }
 }
 
@@ -270,10 +264,10 @@ void LoggerTableProxyModel::fillLoggerSeverityNames()
     szaLoggerSeverityNames[LoggerEnum::TRACE]              = QStringLiteral("TRACE");
     szaLoggerSeverityNames[LoggerEnum::DEBUG_L]            = QStringLiteral("DEBUG");
     szaLoggerSeverityNames[LoggerEnum::INFO]               = QStringLiteral("INFO");
-    szaLoggerSeverityNames[LoggerEnum::WARNING]            = QStringLiteral("WARNING");
+    szaLoggerSeverityNames[LoggerEnum::WARNING]            = QStringLiteral("WARN");
     szaLoggerSeverityNames[LoggerEnum::ERROR_L]            = QStringLiteral("ERROR");
     szaLoggerSeverityNames[LoggerEnum::FATAL]              = QStringLiteral("FATAL");
-    szaLoggerSeverityNames[LoggerEnum::NONE]               = QStringLiteral("NONE");
+//    szaLoggerSeverityNames[LoggerEnum::NONE]               = QStringLiteral("NONE");
 }
 
 //DONE A big optimization was done in the pattern parsing
@@ -289,29 +283,32 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
 
     for (int nIndex = 0; nIndex < LoggerEnum::COUNT_LOGGER_SEVERITY; ++nIndex) {
         //replaced contains of Regex (\b + Level + \b) with just QString. May have false positives, but performance: 63 to 34ms, for the same workload
-        if (szRowData.contains(szaLoggerSeverityNames.at(nIndex), Qt::CaseSensitive) == true) {
+        if (szRowData.contains(szaLoggerSeverityNames[nIndex], Qt::CaseSensitive) == true) {
             bContinueFromLast = false; //one of the levels exists, create new entry
             break;
         }
     }
 
     if (bContinueFromLast == true) {
+        myTableRow.append(new QStandardItem(QString::number(++nRowIndexCount) + '*'));
+
         int nPreviousRow = myItemModel->rowCount() - 1;
 
-        if (nPreviousRow < 0) {
-            myTableRow.clear();
-            return myTableRow;
-        }
+        if (nPreviousRow >= 0) {
+            //copy all columns except message, but check its position in the table
+            for (int nIndex = 1; nIndex < getVisibleIndexForColumn(LoggerEnum::COLUMN_MESSAGE); ++nIndex) {
+                const QStandardItem *myPreviousItem = myItemModel->item(nPreviousRow, nIndex);
 
-        myTableRow.append(new QStandardItem(QString::number(++nRowIndexCount) + "*"));
+                if (myPreviousItem != nullptr) {
+                    QStandardItem *myPreviousItemClone = myPreviousItem->clone();
+                    myTableRow.append(myPreviousItemClone);
+                }
+            }
 
-        //copy all columns except message
-        for (int nIndex = 1; nIndex < LoggerEnum::COLUMN_MESSAGE; ++nIndex) {
-            QStandardItem *myPreviousItem = myItemModel->item(nPreviousRow, nIndex);
-
-            if (myPreviousItem != nullptr) {
-                QStandardItem *myPreviousItemClone = myPreviousItem->clone();
-                myTableRow.append(myPreviousItemClone);
+        } else {
+            //if previous line doesn't exist, add empty elements before the message
+            for (int nIndex = 1; nIndex < getVisibleIndexForColumn(LoggerEnum::COLUMN_MESSAGE); ++nIndex) {
+                myTableRow.append(new QStandardItem(""));
             }
         }
 
@@ -328,59 +325,55 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
             const int nStartOffset                          = patternDataElement.nDataStartOffset;
             const QChar cEndSeparator                       = patternDataElement.cEndSeparator;
 
-            if (cEndSeparator == END_SEPARATOR) { //last element
-                myTableRow.append(new QStandardItem(szRowData.midRef(nDataStartIndex + nStartOffset).trimmed().toString()));
+            if (cEndSeparator == SEPARATOR_END) { //last element
+                myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex + nStartOffset, -1)));
 
             } else {
-//                cEndSeparator = ' ';
                 nDataStartIndex += nStartOffset;
 
-//                while (szRowData.at(nDataStartIndex).isSpace()) { //NOTE only needed when parsing clipboard or file, because of extra spaces between "columns"
-//                    ++nDataStartIndex;
-//                }
-
                 int nDataEndIndex;
+                int nExtraSeparatorsOffset = 0; //if multiple end separators are found, adjust the end offset. Ex: multiple spaces at the end are ignored and the end index is adjusted for the next element
 
+                //removed trim after calling szRowData.mid. From 70 to 68 ms
                 switch (nCurrentPattern) {
                     case LoggerEnum::PATTERN_TIMESTAMP: {
                         //TODO place date and time in different columns
-                        nDataEndIndex = getEndIndexTimestamp(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        nDataEndIndex = getEndIndexTimestamp(szRowData, nDataStartIndex, cEndSeparator, true, nExtraSeparatorsOffset);
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex)));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_THREADID: {
-                        nDataEndIndex = getEndIndexThreadId(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        nDataEndIndex = getEndIndexGeneric(szRowData, nDataStartIndex, cEndSeparator, true, nExtraSeparatorsOffset);
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex)));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_SEVERITY: {
-                        nDataEndIndex = getEndIndexSeverity(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        nDataEndIndex = getEndIndexGeneric(szRowData, nDataStartIndex, cEndSeparator, true, nExtraSeparatorsOffset);
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex)));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_CLASS: {
                         //TODO place line number in another column
-                        nDataEndIndex = getEndIndexClass(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        nDataEndIndex = getEndIndexGeneric(szRowData, nDataStartIndex, cEndSeparator, true, nExtraSeparatorsOffset);
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex)));
                         break;
                     }
 
                     case LoggerEnum::PATTERN_MESSAGE: {
-                        nDataEndIndex = getEndIndexMessage(szRowData, nDataStartIndex, cEndSeparator);
-                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex).trimmed()));
+                        nDataEndIndex = getEndIndexGeneric(szRowData, nDataStartIndex, cEndSeparator, true, nExtraSeparatorsOffset);
+                        myTableRow.append(new QStandardItem(szRowData.mid(nDataStartIndex, nDataEndIndex - nDataStartIndex)));
                         break;
                     }
 
                     case LoggerEnum::COUNT_LOGGER_PATTERN:
-                    default:
                         nDataEndIndex = 0;
                         break;
                 }
 
-                nDataStartIndex = nDataEndIndex + 1;
+                nDataStartIndex = nDataEndIndex + nExtraSeparatorsOffset + 1;
             }
 
         }
@@ -408,13 +401,13 @@ void LoggerTableProxyModel::createNewItemModel(bool bSetAsModel)
         for (int nIndex = 0; nIndex < naColumnOrder.size(); ++nIndex) {
             myItemModel->setHeaderData(nIndex,
                                        Qt::Horizontal,
-                                       getColumnName(static_cast<LoggerEnum::Columns>(naColumnOrder.at(nIndex))),
+                                       getColumnName(static_cast<LoggerEnum::Columns>(naColumnOrder[nIndex])),
                                        Qt::DisplayRole);
         }
     }
 
     if (bSetAsModel == true) {
-        this->setSourceModel(myItemModel);
+        setSourceModel(myItemModel);
         szaTableModelRaw.clear();
     }
 }
@@ -472,7 +465,6 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
                         break;
 
                     case LoggerEnum::COUNT_LOGGER_PATTERN:
-                    default:
                         break;
 
                 }
@@ -524,61 +516,70 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
         }
 
         if (bLastSegment == true) {
-            patternDataElement.cEndSeparator = END_SEPARATOR;  //3
+            patternDataElement.cEndSeparator = SEPARATOR_END;  //3
 
         } else {
             patternDataElement.cEndSeparator = cEndSeparator;  //3
         }
 
         naLoggerPatternData.append(patternDataElement);
+        patternDataElement.print();
     }
 
 }
 
+//TODO may crash when the pattern doesn't match the data
 void LoggerTableProxyModel::reparseTableData()
 {
     createNewItemModel();
 
+    nRowIndexCount = nRowIndexCount - this->rowCount(); //keep the index
+
     appendRows(szaTableModelRaw, false);
 
-    this->setSourceModel(myItemModel);
+    setSourceModel(myItemModel);
 }
 
-int LoggerTableProxyModel::getEndIndexClass(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
+int LoggerTableProxyModel::getEndIndexGeneric(const QString &szRowData, int nStartIndex, const QChar cEndSeparator, bool bIgnoreExtraSeparators, int &nExtraSeparatorsOffset) const
 {
-    int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
+    const int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
+
+    if (bIgnoreExtraSeparators == true) {
+        nExtraSeparatorsOffset = 0;
+
+        int nEndIndexOffsetted = nEndIndex;
+
+        const int nSize = szRowData.size();
+
+        while (++nEndIndexOffsetted < nSize
+               && szRowData[nEndIndexOffsetted] == cEndSeparator) {
+            ++nExtraSeparatorsOffset;
+        }
+    }
 
     return nEndIndex;
 }
 
-int LoggerTableProxyModel::getEndIndexMessage(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
-{
-    int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
-
-    return nEndIndex;
-}
-
-int LoggerTableProxyModel::getEndIndexSeverity(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
-{
-    int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
-
-    return nEndIndex;
-}
-
-int LoggerTableProxyModel::getEndIndexThreadId(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
-{
-    int nEndIndex = szRowData.indexOf(cEndSeparator, nStartIndex);
-
-    return nEndIndex;
-}
-
-int LoggerTableProxyModel::getEndIndexTimestamp(const QString &szRowData, int nStartIndex, QChar cEndSeparator) const
+int LoggerTableProxyModel::getEndIndexTimestamp(const QString &szRowData, int nStartIndex, const QChar cEndSeparator, bool bIgnoreExtraSeparators, int &nExtraSeparatorsOffset) const
 {
     //TODO deal with other timestamp patterns
-    int nEndIndex = -1;
+    int nEndIndex;
 
     nEndIndex = szRowData.indexOf(' ', nStartIndex); // date and time separator
     nEndIndex = szRowData.indexOf(cEndSeparator, nEndIndex + 1);
+
+    if (bIgnoreExtraSeparators == true) {
+        nExtraSeparatorsOffset = 0;
+
+        int nEndIndexOffsetted = nEndIndex;
+
+        const int nSize = szRowData.size();
+
+        while (++nEndIndexOffsetted < nSize
+               && szRowData[nEndIndexOffsetted] == cEndSeparator) {
+            ++nExtraSeparatorsOffset;
+        }
+    }
 
     return nEndIndex;
 }
@@ -608,12 +609,12 @@ void LoggerTableProxyModel::parseFile(const QString &szFilename)
         QTextStream myTextStream(&myFile);
 
         while (myTextStream.atEnd() == false) {
-            QString szRowData = myTextStream.readLine();
+            const QString szRowData = myTextStream.readLine();
 
-            this->appendRow(szRowData);
+            appendRow(szRowData);
         }
 
-        this->setSourceModel(myItemModel);
+        setSourceModel(myItemModel);
 
         emit fileParsingResult(GlobalConstants::SUCCESS, QFileInfo(szFilename).fileName());
 
@@ -625,33 +626,31 @@ void LoggerTableProxyModel::parseFile(const QString &szFilename)
 
 void LoggerTableProxyModel::parseClipboard()
 {
-//    TimeUtils::startTimer();
-
     resetIndex();
 
     createNewItemModel(); //this way is faster: create a new model, insert every row, and set as model in the end
     szaTableModelRaw.clear();
 
-//#define DEBUG_SPEED
-#ifdef DEBUG_SPEED
-    this->setSourceModel(myItemModel);
-#endif
-
     QString szClipboardData = QApplication::clipboard()->text();
 
     QTextStream myTextStream(&szClipboardData); //faster than string.split with either text or regex
 
+#define DEBUG_SPEED
+#ifdef DEBUG_SPEED
+    TimeUtils::startTimer();
+#endif
+
     while (myTextStream.atEnd() == false) {
         const QString szRowData = myTextStream.readLine();
 
-        this->appendRow(szRowData);
+        appendRow(szRowData);
     }
 
-#ifndef DEBUG_SPEED
-    this->setSourceModel(myItemModel);
+#ifdef DEBUG_SPEED
+    TimeUtils::printTimeMilliseconds();
 #endif
 
-//    TimeUtils::printTimeMilliseconds();
+    setSourceModel(myItemModel);
 
     if (myItemModel->rowCount() == 0) {
         emit clipboardParsingResult(GlobalConstants::ERROR);
@@ -695,8 +694,8 @@ void LoggerTableProxyModel::menuActionClickedFilter(bool bState)
     int nColumn = static_cast<QString>(myActionDataSplit.at(1)).toInt();
 
     //TODO add the filter to a line edit so the user can change it
-    this->setFilterRegExp(QRegExp("\\b" + szFilter + "\\b", Qt::CaseSensitive, QRegExp::RegExp));
-    this->setFilterKeyColumn(nColumn);
+    setFilterRegExp(QRegExp("\\b" + szFilter + "\\b", Qt::CaseSensitive, QRegExp::RegExp));
+    setFilterKeyColumn(nColumn);
 }
 
 void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
@@ -715,8 +714,24 @@ void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
     const QString &szClassName = myActionDataSplit.at(0);
     const QString &szLineNumber = myActionDataSplit.at(1);
 
-    //TODO parse files on App init
-    QStringList szaSourceFolders = SourceCodeHandler::getSourceCodeLocations();
+    //TODO parse files on App init or source path changes, and inside SourceCodeHandler itself
+    QString szCurrentProjectName = SourceCodeHandler::getCurrentProjectName();
+    QStringList szaSourceLocations = SourceCodeHandler::getSourceCodeLocations();
+
+    QStringList szaSourceFolders;
+
+    for (const QString &szSourceLocation : szaSourceLocations) {
+        const QStringList szaSourceLocation = szSourceLocation.split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
+
+        const QString &szProjectName = szaSourceLocation.at(SourceCodeLocationsEnum::COLUMN_PROJECT_NAME);
+
+        if (szProjectName.isEmpty()
+            || szProjectName == szCurrentProjectName) { //empty name means this path applies to all projects
+
+            szaSourceFolders.append(szaSourceLocation.at(SourceCodeLocationsEnum::COLUMN_SOURCE_PATH));
+        }
+    }
+
     QString szFileExtension = SourceCodeHandler::getCurrentLanguageFileExtension();
 
     if (szFileExtension.isEmpty()) {
@@ -729,7 +744,7 @@ void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
     bool bFileFound = false;
 
     for (int nIndex = 0; nIndex < szaSourceFolders.size() && bFileFound == false; ++nIndex) {
-        QDirIterator myDirIterator(szaSourceFolders.at(nIndex), QStringList() << '*' + szFileExtension, QDir::Files, QDirIterator::Subdirectories | QDirIterator::FollowSymlinks);
+        QDirIterator myDirIterator(szaSourceFolders[nIndex], QStringList() << '*' + szFileExtension, QDir::Files, QDirIterator::Subdirectories | QDirIterator::FollowSymlinks);
 
         while (myDirIterator.hasNext()) {
 

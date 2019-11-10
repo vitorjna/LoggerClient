@@ -2,6 +2,8 @@
 
 StandardItemModel::StandardItemModel(QObject *parent)
     : QStandardItemModel(parent)
+    , myColorError(192, 32, 32, 192)
+    , myBrushError(myColorError)
 {
     setupSignalsAndSlots();
 }
@@ -87,7 +89,6 @@ void StandardItemModel::insertRow(int row, const QList<QStandardItem *> &items)
             QStandardItemModel::insertRow(row, items);
         }
     }
-
 
     sort();
 }

@@ -5,6 +5,7 @@
 
 StandardItemView::StandardItemView(QWidget *parent)
     : QTableView(parent)
+    , myModel(new StandardItemModel(this))
 {
 }
 
@@ -21,7 +22,7 @@ QString StandardItemView::toString(int nTop, int nBottom, int nLeft, int nRight)
     }
 
     QStringList szaRows;
-    szaRows.reserve(100 * (nBottom - nTop));
+    szaRows.reserve(nBottom - nTop);
 
     for (int nRow = nTop; nRow <= nBottom; ++nRow) {
         QStringList szaRow;
@@ -80,12 +81,12 @@ void StandardItemView::keyPressEvent(QKeyEvent *myKeyEvent)
 
         for (int nRow = 0; nRow < szaRows.size(); ++nRow) {
 
-            const QStringList szaRow = szaRows.at(nRow).split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
+            const QStringList szaRow = szaRows[nRow].split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
 
             QList<QStandardItem *> myTableRow;
 
             for (int nCol = 0; nCol < szaRow.size(); ++nCol) {
-                myTableRow.append(new QStandardItem(szaRow.at(nCol)));
+                myTableRow.append(new QStandardItem(szaRow[nCol]));
             }
 
             myModel->appendRow(myTableRow);

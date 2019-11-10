@@ -5,6 +5,8 @@ SearchWidget::SearchWidget(QWidget *parent)
 {
     setupUi();
     setupSignalsAndSlots();
+
+    setupShortcuts();
 }
 
 SearchWidget::~SearchWidget()
@@ -36,6 +38,7 @@ void SearchWidget::setupUi()
 
         lineEditSearchText = new QLineEdit(this);
         lineEditSearchText->setPlaceholderText(tr("Text to search"));
+        lineEditSearchText->setToolTip(tr("Ctrl+F to select"));
         lineEditSearchText->setClearButtonEnabled(true);
         labelSearchText->setBuddy(lineEditSearchText);
 
@@ -74,6 +77,21 @@ void SearchWidget::setupSignalsAndSlots()
             this,                       &SearchWidget::previousResult);
 }
 
+void SearchWidget::setupShortcuts()
+{
+    QShortcut *shortcutSearchText       = new QShortcut(QKeySequence(QStringLiteral("Ctrl+F")), this);
+    connect(shortcutSearchText,         &QShortcut::activated,
+            this,                       &SearchWidget::focusAndSelect);
+
+    QShortcut *shortcutSearchNext       = new QShortcut(QKeySequence(QStringLiteral("F3")), this);
+    connect(shortcutSearchNext,         &QShortcut::activated,
+            this,                       &SearchWidget::nextResult);
+
+    QShortcut *shortcutSearchPrevious   = new QShortcut(QKeySequence(QStringLiteral("Shift+F3")), this);
+    connect(shortcutSearchPrevious,     &QShortcut::activated,
+            this,                       &SearchWidget::previousResult);
+}
+
 void SearchWidget::previousResult()
 {
     qDebug() << "previous result";
@@ -82,6 +100,13 @@ void SearchWidget::previousResult()
 void SearchWidget::nextResult()
 {
     qDebug() << "next result";
+}
+
+void SearchWidget::focusAndSelect()
+{
+    setFocus();
+
+    lineEditSearchText->selectAll();
 }
 
 void SearchWidget::focusInEvent(QFocusEvent *event)

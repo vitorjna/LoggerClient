@@ -18,12 +18,12 @@ QStringList SourceCodeHandler::getSupportedLanguages()
 
 QString SourceCodeHandler::getCurrentLanguage()
 {
-    return AppSettings::getValue(AppSettings::KEY_SOURCE_LANGUAGE, SourceCodeHandler::getSupportedLanguages().at(0)).toString();
+    return AppSettings::getValue(AppSettings::KEY_CODE_SOURCE_LANGUAGE, SourceCodeHandler::getSupportedLanguages().at(0)).toString();
 }
 
 void SourceCodeHandler::setCurrentLanguage(const QString &szCurrentLanguage)
 {
-    AppSettings::setValue(AppSettings::KEY_SOURCE_LANGUAGE, szCurrentLanguage);
+    AppSettings::setValue(AppSettings::KEY_CODE_SOURCE_LANGUAGE, szCurrentLanguage);
 }
 
 QString SourceCodeHandler::getCurrentLanguageFileExtension()
@@ -31,7 +31,7 @@ QString SourceCodeHandler::getCurrentLanguageFileExtension()
     QString szCurrentLanguage = getCurrentLanguage();
     int nCurrentLanguage = getSupportedLanguages().indexOf(szCurrentLanguage);
 
-    if (nCurrentLanguage != -1) {
+    if (nCurrentLanguage != -1) { //could use "default", but want to keep non-enum elements out of the switch
 
         switch (static_cast<SourceCodeLanguages>(nCurrentLanguage)) {
             case SourceCodeHandler::Cpp:
@@ -51,7 +51,7 @@ QString SourceCodeHandler::getCurrentLanguageFileExtension()
 
 QStringList SourceCodeHandler::getSourceCodeLocations()
 {
-    QString szSourceLocations = AppSettings::getValue(AppSettings::KEY_SOURCE_LOCATION).toString();
+    QString szSourceLocations = AppSettings::getValue(AppSettings::KEY_CODE_SOURCE_LOCATION).toString();
 
     QStringList szaSourceFolders;
 
@@ -66,7 +66,7 @@ QStringList SourceCodeHandler::getSourceCodeLocations()
 
 void SourceCodeHandler::setSourceCodeLocations(const QStringList &szaSourceFolders)
 {
-    AppSettings::setValue(AppSettings::KEY_SOURCE_LOCATION, szaSourceFolders.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));
+    AppSettings::setValue(AppSettings::KEY_CODE_SOURCE_LOCATION, szaSourceFolders.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));
 }
 
 QStringList SourceCodeHandler::getEditorNames()
@@ -132,6 +132,16 @@ QString SourceCodeHandler::getCurrentEditorName()
 void SourceCodeHandler::setCurrentEditor(const QString &szCurrentEditor)
 {
     AppSettings::setValue(AppSettings::KEY_CODE_EDITOR_NAME, szCurrentEditor);
+}
+
+QString SourceCodeHandler::getCurrentProjectName()
+{
+    return AppSettings::getValue(AppSettings::KEY_CODE_SOURCE_PROJECT, AppSettings::getDefaultValue(AppSettings::KEY_CODE_SOURCE_PROJECT)).toString();
+}
+
+void SourceCodeHandler::setCurrentProjectName(const QString &szCurrentProjectName)
+{
+    AppSettings::setValue(AppSettings::KEY_CODE_SOURCE_PROJECT, szCurrentProjectName);
 }
 
 QString SourceCodeHandler::getEditorHandling(const SourceCodeHandler::SourceCodeEditors eEditor)

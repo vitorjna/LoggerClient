@@ -2,7 +2,9 @@
 
 #include <QtNetwork>
 
-class TcpSocketThreadable : public QTcpSocket
+#include "interface/IntMutexable.h"
+
+class TcpSocketThreadable : public QTcpSocket, public IntMutexable
 {
     Q_OBJECT
 
@@ -11,7 +13,6 @@ public:
     ~TcpSocketThreadable() override;
 
 private:
-    QMutex *myMutex;
     int nTimeout;
 
 public slots:

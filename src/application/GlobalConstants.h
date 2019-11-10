@@ -30,8 +30,8 @@ public:
     static const QString    SETTINGS_LABEL_SERVER_NAME;
     static const QString    SETTINGS_LABEL_SERVER_PORT;
     static const QString    SETTINGS_LOGGER_PATTERN;
+    static const QString    SETTINGS_LOGGER_PATTERN_LIST;
     static const QString    SETTINGS_ROW_HEIGHT_BIAS;
-    static const QString    SETTINGS_THEME_DEFAULT;
     static const QString    SETTINGS_THEME_NAME;
     static const QString    SETTINGS_WINDOW_POS_MAIN;
 
@@ -39,8 +39,9 @@ public:
 //    static const QString    SETTINGS_CODE_EDITOR_HANDLING;
     static const QString    SETTINGS_CODE_EDITOR_LOCATION;
     static const QString    SETTINGS_CODE_EDITOR_NAME;
-    static const QString    SETTINGS_SOURCE_LANGUAGE;
-    static const QString    SETTINGS_SOURCE_LOCATION;
+    static const QString    SETTINGS_CODE_SOURCE_LANGUAGE;
+    static const QString    SETTINGS_CODE_SOURCE_LOCATION;
+    static const QString    SETTINGS_CODE_SOURCE_PROJECT;
 
     ///Other Options
     static const QString    SETTINGS_FORMAT_EXPORTED_LOGS;
