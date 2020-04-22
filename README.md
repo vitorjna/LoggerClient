@@ -7,6 +7,3 @@ Supported input: connection to remote logger server; opening log files; pasting 
 Includes a python script to simulate a logger server.
 
 This is a work in progress. Support for different types of logging patterns exists but is unstable.
-
-
-Known issues: sometimes refuses to connect or crashes when disconnecting from a server and connecting to another address.
