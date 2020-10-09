@@ -40,6 +40,8 @@ int main(int argc, char **argv)
 {
     qsrand(QTime::currentTime().msec());
 
+    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+
 //    Tests::run();
 
     registerMetatypes();

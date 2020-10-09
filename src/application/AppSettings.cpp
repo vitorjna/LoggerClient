@@ -49,6 +49,7 @@ QVariant AppSettings::getDefaultValue(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_CODE_SOURCE_PROJECT:
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
+        case AppSettings::KEY_KEYWORDS_HIGHLIGHT:
         case AppSettings::COUNT_APP_SETTINGS:
             return QVariant();
     }
@@ -84,6 +85,7 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
         case AppSettings::KEY_LOGGER_PATTERN_LIST:
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
+        case AppSettings::KEY_KEYWORDS_HIGHLIGHT:
             return GlobalConstants::APPLICATION_OPTIONS;
 
         case COUNT_APP_SETTINGS:
@@ -99,6 +101,9 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
 
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
             return GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES;
+
+        case AppSettings::KEY_KEYWORDS_HIGHLIGHT:
+            return GlobalConstants::SETTINGS_KEYWORDS_HIGHLIGHT;
 
         case AppSettings::KEY_CODE_SOURCE_LANGUAGE:
             return GlobalConstants::SETTINGS_CODE_SOURCE_LANGUAGE;

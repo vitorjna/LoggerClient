@@ -39,7 +39,7 @@ bool ChannelSocketClient::connect(const QString &szIpAddress, const QString &szP
         return false;
 
     } else {
-        this->szIpAddress = szIpAddress;
+        this->szIpAddress = NetworkUtils::cleanupIpV4Address(szIpAddress);
         this->nPort = szPort.toUShort();
 
         emit connectSocket(this->szIpAddress, this->nPort);

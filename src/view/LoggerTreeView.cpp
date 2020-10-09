@@ -1,6 +1,7 @@
 #include "LoggerTreeView.h"
 #include "application/AppSettings.h"
 #include "application/GlobalConstants.h"
+#include "data/LoggerTableProxyModel.h"
 #include "ui/ToastNotificationWidget.h"
 
 LoggerTreeView::LoggerTreeView(QWidget *parent)
@@ -106,7 +107,7 @@ int LoggerTreeView::getColumnMaxCharCount(const int nCol, const int nRowTop, int
         }
     }
 
-    return nMaxSize;
+    return nMaxSize * LoggerTableProxyModel::getColumnWidthBias((LoggerEnum::Columns)nCol);
 }
 
 void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)

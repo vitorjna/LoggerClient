@@ -76,6 +76,8 @@ public:
 
     void resetIndex();
 
+    static double getColumnWidthBias(const LoggerEnum::Columns eColumn);
+
 protected:
     static QString getColumnName(const LoggerEnum::Columns eColumn);
     static void fillLoggerPatternElements();
@@ -143,6 +145,8 @@ public slots:
 
     void deleteRowsAbove(bool bState);
     void deleteRowsBelow(bool bState);
+
+    void updateKeywords(const QStringList &szaKeywords);
 
 signals:
     void clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult);

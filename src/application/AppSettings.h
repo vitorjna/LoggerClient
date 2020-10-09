@@ -33,6 +33,7 @@ public:
         ///Other Options
         KEY_FORMAT_EXPORTED_LOGS,
         KEY_LOGGER_SERVER_ADDRESSES,
+        KEY_KEYWORDS_HIGHLIGHT,
 
         COUNT_APP_SETTINGS
     };

@@ -13,6 +13,7 @@ public:
 
     static const QString    SEPARATOR_SETTINGS_LIST;
     static const QString    SEPARATOR_SETTINGS_LIST_2;
+    static const QChar      SEPARATOR_SETTINGS_LIST_WORDS;
     static const QChar      SEPARATOR_EXPORTED_TEXT_LINE;
     static const QChar      SEPARATOR_EXPORTED_TEXT_COLUMN;
 
@@ -46,6 +47,7 @@ public:
     ///Other Options
     static const QString    SETTINGS_FORMAT_EXPORTED_LOGS;
     static const QString    SETTINGS_LOGGER_SERVER_ADDRESSES;
+    static const QString    SETTINGS_KEYWORDS_HIGHLIGHT;
 
     static const QString    FILE_EXTENSION_CPP;
     static const QString    FILE_EXTENSION_JAVA;

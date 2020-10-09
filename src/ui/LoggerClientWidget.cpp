@@ -5,6 +5,7 @@
 #include "ui/ToastNotificationWidget.h"
 #include "ui/element/PushButtonWithMenu.h"
 #include "ui/modal/OptionsWidget.h"
+#include "ui/widget/KeywordHighlightWidget.h"
 #include "ui/widget/LoggerPatternWidget.h"
 #include "ui/widget/NetworkConnectionWidget.h"
 #include "ui/widget/SearchWidget.h"
@@ -24,6 +25,7 @@
 //TODO add default name for log file saving as text
 //TODO add TipWidget (NAM: you can copy and paste from the table. Paste in the format...). Auto hides itself by a checkbox in the OptionsWidget
 //TODO add button to reset patterns to default values
+//TODO add undo with timeout to clear table button
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
@@ -208,8 +210,12 @@ void LoggerClientWidget::setupUI()
             pushButtonClearFilter->setText(tr("Clear &filter"));
             pushButtonClearFilter->setEnabled(false);
 
+            myKeywordHighlightWidget = new KeywordHighlightWidget(this);
+
             myFiltersLayout->addWidget(mySearchWidget);
             myFiltersLayout->addWidget(pushButtonClearFilter);
+            myFiltersLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed));
+            myFiltersLayout->addWidget(myKeywordHighlightWidget);
         }
         myMainLayout->addLayout(myFiltersLayout);
 
@@ -319,11 +325,14 @@ void LoggerClientWidget::setupSignalsAndSlots()
             this,                       &LoggerClientWidget::rowHeightBiasChanged);
 
     //SEARCH
-    connect(mySearchWidget,             SIGNAL(searchTextChanged(QString)),
-            this,                       SLOT(searchTextChanged(QString)));
+    connect(mySearchWidget,             &SearchWidget::searchTextChanged,
+            this,                       &LoggerClientWidget::searchTextChanged);
 
     connect(pushButtonClearFilter,      SIGNAL(clicked(bool)),
             this,                       SLOT(buttonClickedClearFilter(bool)));
+
+    connect(myKeywordHighlightWidget,   &KeywordHighlightWidget::keywordsChangedSignal,
+            this,                       &LoggerClientWidget::keywordHighlightChanged);
 
 }
 
@@ -388,6 +397,8 @@ void LoggerClientWidget::loadSettings()
 
     int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
     rowHeightBiasChanged(nRowBias);
+
+    keywordHighlightChanged(myKeywordHighlightWidget->getKeywords());
 }
 
 void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &szText, bool bForce)
@@ -439,7 +450,8 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             break;
 
         case LoggerClientWidget::SERVER_CONNECTING: {
-            QString szInfoMessage = tr("Connecting to: ") + myServerConnectionWidget->getIp() + ':' + myServerConnectionWidget->getPort();
+            QString szInfoMessage = tr("Connecting to: ") + getClientInfoMessage();
+
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
             ToastNotificationWidget::showMessage(this, szInfoMessage, ToastNotificationWidget::INFO, 2000);
@@ -452,7 +464,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
         }
 
         case LoggerClientWidget::SERVER_CONNECTED: {
-            QString szInfoMessage = tr("Connected to: ") + myServerConnectionWidget->getIp() + ':' + myServerConnectionWidget->getPort();
+            QString szInfoMessage = tr("Connected to: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -474,7 +486,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
         }
 
         case LoggerClientWidget::SERVER_RETRYING: {
-            QString szInfoMessage = tr("Disconnected. Retrying: ") + myServerConnectionWidget->getIp() + ':' + myServerConnectionWidget->getPort();
+            QString szInfoMessage = tr("Disconnected. Retrying: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -609,6 +621,16 @@ void LoggerClientWidget::saveTableToFile(const QString &szFilename)
 
     } else {
         ToastNotificationWidget::showMessage(this, tr("Saving file failed"), ToastNotificationWidget::ERROR, 2000);
+    }
+}
+
+QString LoggerClientWidget::getClientInfoMessage()
+{
+    if (myServerConnectionWidget->getName().isEmpty() == true) {
+        return myServerConnectionWidget->getIp() + ':' + myServerConnectionWidget->getPort();
+
+    } else {
+        return myServerConnectionWidget->getName() + tr(" on ") + myServerConnectionWidget->getIp() + ':' + myServerConnectionWidget->getPort();
     }
 }
 
@@ -894,7 +916,13 @@ void LoggerClientWidget::searchTextChanged(const QString &szText)
 //        matchRows << QString::number(myIndex.row());
 //    }
 
-//    qDebug() << "MATCHES:" << matchRows.join(',');
+    //    qDebug() << "MATCHES:" << matchRows.join(',');
+}
+
+void LoggerClientWidget::keywordHighlightChanged(const QStringList &szaKeywords)
+{
+    myProxyModel->updateKeywords(szaKeywords);
+    myTableView->repaint();
 }
 
 void LoggerClientWidget::connectionSuccess(const QString &szError)

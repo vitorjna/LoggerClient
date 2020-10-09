@@ -212,6 +212,26 @@ void LoggerTableProxyModel::resetIndex()
     nRowIndexCount = 0;
 }
 
+double LoggerTableProxyModel::getColumnWidthBias(const LoggerEnum::Columns eColumn)
+{
+    switch (eColumn) {
+        case LoggerEnum::COLUMN_INDEX:
+        case LoggerEnum::COLUMN_TIMESTAMP:
+            return 1.0;
+
+        case LoggerEnum::COLUMN_THREADID:
+            return 0.5;
+
+        case LoggerEnum::COLUMN_CLASS:
+        case LoggerEnum::COLUMN_SEVERITY:
+        case LoggerEnum::COLUMN_MESSAGE:
+            return 1.0;
+
+        case LoggerEnum::COUNT_TABLE_COLUMNS:
+            return 0.0;
+    }
+}
+
 QString LoggerTableProxyModel::getColumnName(const LoggerEnum::Columns eColumn)
 {
     switch (eColumn) {
@@ -802,5 +822,10 @@ void LoggerTableProxyModel::deleteRowsBelow(bool bState)
     int nLineNumber = mySenderAction->data().toInt();
 
     myItemModel->removeRows(nLineNumber + 1, myItemModel->rowCount() - nLineNumber - 1);
+}
+
+void LoggerTableProxyModel::updateKeywords(const QStringList &szaKeywords)
+{
+    myItemModel->updateKeywords(szaKeywords);
 }
 
