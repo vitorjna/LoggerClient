@@ -18,7 +18,7 @@ public:
     explicit SearchWidget(QWidget *parent = nullptr);
     ~SearchWidget() override;
 
-    bool isEmpty();
+    bool isEmpty() const;
 
     void triggerSearchTextChanged();
 

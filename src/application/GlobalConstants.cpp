@@ -2,6 +2,7 @@
 
 const QString   GlobalConstants::SEPARATOR_SETTINGS_LIST            = QStringLiteral("<@>");
 const QString   GlobalConstants::SEPARATOR_SETTINGS_LIST_2          = QStringLiteral("<@@>");
+const QChar     GlobalConstants::SEPARATOR_SETTINGS_LIST_WORDS      = ',';
 const QChar     GlobalConstants::SEPARATOR_EXPORTED_TEXT_LINE       = '\n';
 const QChar     GlobalConstants::SEPARATOR_EXPORTED_TEXT_COLUMN     = ' ';
 
@@ -35,6 +36,7 @@ const QString   GlobalConstants::SETTINGS_CODE_SOURCE_PROJECT       = QStringLit
 ///Other Options
 const QString   GlobalConstants::SETTINGS_FORMAT_EXPORTED_LOGS      = QStringLiteral("FormatExportedLogs");
 const QString   GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES   = QStringLiteral("LoggerServerAddresses");
+const QString   GlobalConstants::SETTINGS_KEYWORDS_HIGHLIGHT        = QStringLiteral("KeywordsHighlight");
 
 const QString   GlobalConstants::FILE_EXTENSION_CPP                 = QStringLiteral(".cpp");
 const QString   GlobalConstants::FILE_EXTENSION_JAVA                = QStringLiteral(".java");

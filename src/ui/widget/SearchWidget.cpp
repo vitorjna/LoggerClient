@@ -13,7 +13,7 @@ SearchWidget::~SearchWidget()
 {
 }
 
-bool SearchWidget::isEmpty()
+bool SearchWidget::isEmpty() const
 {
     return lineEditSearchText->text().isEmpty();
 }
@@ -37,7 +37,7 @@ void SearchWidget::setupUi()
         labelSearchText->setText(tr("Search:"));
 
         lineEditSearchText = new QLineEdit(this);
-        lineEditSearchText->setPlaceholderText(tr("Text to search"));
+        lineEditSearchText->setPlaceholderText(tr("Text to search. Case-insensitive"));
         lineEditSearchText->setToolTip(tr("Ctrl+F to select"));
         lineEditSearchText->setClearButtonEnabled(true);
         labelSearchText->setBuddy(lineEditSearchText);

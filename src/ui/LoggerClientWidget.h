@@ -23,8 +23,9 @@
 #include "interface/IntMutexable.h"
 
 class ChannelSocketClient;
-class LoggerTableProxyModel;
+class KeywordHighlightWidget;
 class LoggerPatternWidget;
+class LoggerTableProxyModel;
 class LoggerTreeView;
 class NetworkConnectionWidget;
 class OptionsWidget;
@@ -76,6 +77,8 @@ private:
 
     void saveTableToFile(const QString &szFilename = QLatin1String(""));
 
+    QString getClientInfoMessage();
+
     ///properties
     const QString           szWindowTitle = QStringLiteral("Logger Client");
 //    QString                 szLoggerPattern = QStringLiteral("[%d][FILE:%c{1}.java]: %p %m"); //[2018-09-11 00:00:27,251][FILE:ServiceCloseOpenShift.java]: DEBUG (606020) Attempt to start close shift ended
@@ -108,6 +111,8 @@ private:
     SearchWidget            *mySearchWidget{};
     QPushButton             *pushButtonClearFilter{};
 
+    KeywordHighlightWidget  *myKeywordHighlightWidget{};
+
 protected slots:
     void buttonConnectToServerToggled(bool bButtonState);
 
@@ -135,6 +140,8 @@ protected slots:
     void filterStateChanged(bool bState);
 
     void searchTextChanged(const QString &szText);
+
+    void keywordHighlightChanged(const QStringList &szaKeywords);
 
 private slots:
     void connectionSuccess(const QString &szError);
@@ -172,5 +179,4 @@ private:
 #endif
 
 };
-
 

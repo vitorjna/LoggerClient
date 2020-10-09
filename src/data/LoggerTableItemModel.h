@@ -19,8 +19,11 @@ public:
 
     QColor getColorForLevel(const QString &szLevel) const;
 
+    void updateKeywords(const QStringList &szaKeywords);
+
 private:
     LoggerTableProxyModel *myProxyModel;
+    QStringList szaKeywords;
 
 //reimplemented methods
 public:
