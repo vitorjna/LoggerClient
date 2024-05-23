@@ -8,6 +8,7 @@
 #include <QDirIterator>
 #include <QFile>
 #include <QFileInfo>
+#include <QRegularExpression>
 #include <QSortFilterProxyModel>
 #include <QStandardItem>
 #include <QThread>
@@ -61,17 +62,17 @@ public:
     explicit LoggerTableProxyModel(QObject *parent = nullptr);
     ~LoggerTableProxyModel() override = default;
 
-    static int getLogSeverityFromName(const QString &szSeverity);
+    static qsizetype getLogSeverityFromName(const QString &szSeverity);
 
     void appendRow(const QString &szRowData, bool bAppendToRawData = true);
     void appendRows(const QStringList &szaRowsData, bool bAppendToRawData = true);
 
     QList<QAction *> *generateActionsForIndex(const QModelIndex &myModelIndex, QWidget *parent);
 
-    void setFilterRegExp(const QRegExp &regExp, bool bActualFilter = true);
+    void setFilterRegExp(const QRegularExpression &regExp, bool bActualFilter = true);
     void reApplyFilter();
 
-    int getVisibleIndexForColumn(const LoggerEnum::Columns eColumn);
+    qsizetype getVisibleIndexForColumn(const LoggerEnum::Columns eColumn);
     LoggerEnum::Columns getColumnForVisibleIndex(const int nIndex);
 
     void resetIndex();
@@ -90,7 +91,7 @@ private:
         int nDataStartOffset{-1};                                                       // offset for start index (to account for extra separators between elements)
         QChar cEndSeparator{'\0'};                                                      // char of the end separator for this pattern. For the last group, separator is '\0' (to the end of the message)
 
-        void print() {
+        void print() const {
             qDebug() << "patternData: "
                      << "\tpattern:"    << szaLoggerPatternElements[eCurrentPattern]
                      << "\toffset:"     << nDataStartOffset
@@ -114,8 +115,8 @@ private:
     ///
     /// Generic: for pattern elements without any special parsing needs
     /// Timestamp: to parse the timestamp correctly, as there is a space and other characters between the timestamp elements
-    int getEndIndexGeneric      (const QString &szRowData, int nStartIndex, const QChar cEndSeparator, bool bIgnoreExtraSeparators, int &nExtraSeparatorsOffset) const;
-    int getEndIndexTimestamp    (const QString &szRowData, int nStartIndex, const QChar cEndSeparator, bool bIgnoreExtraSeparators, int &nExtraSeparatorsOffset) const;
+    static qsizetype getEndIndexGeneric  (const QString &szRowData, int nStartIndex, const QChar cEndSeparator, bool bIgnoreExtraSeparators, int &nExtraSeparatorsOffset);
+    static qsizetype getEndIndexTimestamp(const QString &szRowData, int nStartIndex, const QChar cEndSeparator, bool bIgnoreExtraSeparators, int &nExtraSeparatorsOffset);
 
     static QVector<QString>     szaLoggerPatternElements;
     static QVector<QString>     szaLoggerSeverityNames;
@@ -129,7 +130,7 @@ private:
     QVector<int>                naColumnOrder;
 
     QStringList                 szaTableModelRaw;
-    QRegExp                     myFilter;
+    QRegularExpression          myFilter;
 
 public slots:
     void clear();
@@ -150,7 +151,7 @@ public slots:
 
 signals:
     void clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult);
-    void fileParsingResult(const int nResult, const QString &szFilename = QLatin1String(""));
+    void fileParsingResult(const int nResult, const QString &szFilename = QStringLiteral(""));
     void filterStateChanged(bool);
 
     void showNotification(const QString &szMessage, const ToastNotificationWidget::NotificationType eNotifType, const int nTimeoutMs);

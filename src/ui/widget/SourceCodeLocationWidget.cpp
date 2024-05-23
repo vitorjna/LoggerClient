@@ -197,33 +197,35 @@ void SourceCodeLocationWidget::loadSettings()
 
         if (szSourceLocations.contains(GlobalConstants::SEPARATOR_SETTINGS_LIST_2) == true) {
 
-            for (int nRow = 0; nRow < szaSourceLocations.size(); ++nRow) {
+            QList<QStandardItem *> myTableRow;
+            myTableRow.reserve(SourceCodeLocationsEnum::COUNT_TABLE_COLUMNS);
 
-                const QStringList szaSourceLocation = szaSourceLocations.at(nRow).split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
+            for (const QString &szSourceLocationRow : szaSourceLocations) {
+                const QStringList szaSourceLocation = szSourceLocationRow.split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
 
                 if (szaSourceLocation.size() != SourceCodeLocationsEnum::COUNT_TABLE_COLUMNS) {
-                    ToastNotificationWidget::showMessage(this, tr("Could not parse source location: ") + szaSourceLocations.at(nRow), ToastNotificationWidget::ERROR, 3000);
+                    ToastNotificationWidget::showMessage(this, tr("Could not parse source location: ") + szSourceLocationRow, ToastNotificationWidget::ERROR, 3000);
                     continue;
                 }
-
-                QList<QStandardItem *> myTableRow;
 
                 for (int nCol = 0; nCol < SourceCodeLocationsEnum::COUNT_TABLE_COLUMNS; ++nCol) {
                     myTableRow.append(new QStandardItem(szaSourceLocation.at(nCol)));
                 }
 
                 tableModelLocations->appendRow(myTableRow);
+                myTableRow.clear();
             }
 
         } else { //parse first data type, containing only source locations
+            QList<QStandardItem *> myTableRow;
+            myTableRow.reserve(2);
+
             for (int nRow = 0; nRow < szaSourceLocations.size(); ++nRow) {
-
-                QList<QStandardItem *> myTableRow;
-
                 myTableRow.append(new QStandardItem());
                 myTableRow.append(new QStandardItem(szaSourceLocations.at(nRow)));
 
                 tableModelLocations->appendRow(myTableRow);
+                myTableRow.clear();
             }
         }
     }
@@ -234,9 +236,10 @@ void SourceCodeLocationWidget::saveSettings()
     QStringList szaSourceLocations;
     szaSourceLocations.reserve(tableModelLocations->rowCount());
 
-    for (int nRow = 0; nRow < tableModelLocations->rowCount(); ++nRow) {
-        QStringList szaSourceLocation;
+    QStringList szaSourceLocation;
+    szaSourceLocation.reserve(SourceCodeLocationsEnum::COUNT_TABLE_COLUMNS);
 
+    for (int nRow = 0; nRow < tableModelLocations->rowCount(); ++nRow) {
         for (int nColumn = 0; nColumn < SourceCodeLocationsEnum::COUNT_TABLE_COLUMNS; ++nColumn) {
             const QString szText = tableModelLocations->item(nRow, nColumn)->text();
 
@@ -244,6 +247,7 @@ void SourceCodeLocationWidget::saveSettings()
         }
 
         szaSourceLocations.append(szaSourceLocation.join(GlobalConstants::SEPARATOR_SETTINGS_LIST_2));
+        szaSourceLocation.clear();
     }
 
     AppSettings::setValue(AppSettings::KEY_CODE_SOURCE_LOCATION, szaSourceLocations.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));
@@ -267,4 +271,3 @@ void SourceCodeLocationWidget::closeEvent(QCloseEvent *event)
 
     QWidget::closeEvent(event);
 }
-

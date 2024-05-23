@@ -7,8 +7,8 @@ bool Completer::eventFilter(QObject *watched, QEvent *event)
     if (event->type() == QEvent::KeyPress) {
         QKeyEvent *keyEvent = dynamic_cast<QKeyEvent *>(event);
 
-        if (keyEvent->key() == Qt::Key_Return ||
-            keyEvent->key() == Qt::Key_Enter) {
+        if (keyEvent->key() == Qt::Key_Return
+            || keyEvent->key() == Qt::Key_Enter) {
 
             QAbstractItemView *view = qobject_cast<QAbstractItemView *>(watched);
             QString szCurrentSuggestion = view->currentIndex().data(Qt::DisplayRole).toString();

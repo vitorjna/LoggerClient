@@ -58,7 +58,7 @@ endif(CCACHE_FOUND)
 #endif()
 #set(OPENSSL_USE_STATIC_LIBS ON)
 
-find_package(Qt5 COMPONENTS Widgets Network REQUIRED)
+find_package(Qt6 COMPONENTS Widgets Network REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -119,7 +119,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${TARGET_INCLUDES})
 # ---------------------------------- COMPILATION --------------------------------- #
 # -------------------------------------------------------------------------------- #
 
-set(CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS} -fno-operator-names -fmessage-length=0 -std=c++14 -pedantic -DBOOST_NO_LONG_LONG -U_GLIBCXX_HAVE_ISWBLANK")
+set(CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS} -fno-operator-names -fmessage-length=0 -std=c++17 -pedantic -DBOOST_NO_LONG_LONG -U_GLIBCXX_HAVE_ISWBLANK")
 
 if (TARGET_WINDOWS OR TARGET_LINUX OR TARGET_OSX)
     set(CXX_FLAGS_COMMON "${CXX_FLAGS_COMMON}")
@@ -149,8 +149,8 @@ message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 # -------------------------------------------------------------------------------- #
 
 set(TARGET_LIBRARIES
-    Qt5::Widgets
-    Qt5::Network
+    Qt6::Widgets
+    Qt6::Network
     )
 
 if(TARGET_WINDOWS)
@@ -191,7 +191,6 @@ if(TARGET_WINDOWS OR TARGET_LINUX)
 endif()
 
 #   -Wl,-L\"${path_to_lib}/lib\" \
-#    -Wl,-s \
 #        -Wl,--as-needed \
 #        -Wl,--print-gc-sections \
 #        -nodefaultlibs \

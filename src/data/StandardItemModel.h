@@ -42,11 +42,8 @@ private:
     bool bAllowDuplicates = true;
     int nSortColumn = -1;
 
-
     // reimplemented
 public:
     void sort(int column = -1, Qt::SortOrder order = Qt::AscendingOrder) override;
 
 };
-
-

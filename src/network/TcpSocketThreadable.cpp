@@ -3,7 +3,7 @@
 
 TcpSocketThreadable::TcpSocketThreadable(QObject *parent)
     : QTcpSocket(nullptr) //parent removed, to allow moveToThread
-    , IntMutexable(QMutex::NonRecursive)
+    , IntMutexable()
     , nTimeout(3000)
 {
     Q_UNUSED(parent)
@@ -58,7 +58,7 @@ void TcpSocketThreadable::readNewMessage()
 
     if (caData.size() == 0) {
         //a reading error occurred. Ignore message
-        emit error(QAbstractSocket::UnknownSocketError);
+        emit errorOccurred(QAbstractSocket::UnknownSocketError);
 
     } else {
 #ifdef DEBUG_STUFF

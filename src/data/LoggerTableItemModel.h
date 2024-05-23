@@ -17,7 +17,7 @@ public:
     explicit LoggerTableItemModel(LoggerTableProxyModel *myProxyModel, QObject *parent = nullptr);
     ~LoggerTableItemModel() override;
 
-    QColor getColorForLevel(const QString &szLevel) const;
+    static QColor getColorForLevel(const QString &szLevel);
 
     void updateKeywords(const QStringList &szaKeywords);
 

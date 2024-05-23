@@ -2,7 +2,6 @@
 #include "application/AppSettings.h"
 #include "application/GlobalConstants.h"
 #include "application/SourceCodeHandler.h"
-#include "util/FileUtils.h"
 
 OptionsWidget::OptionsWidget(QWidget *parent)
     : QWidget(parent)
@@ -200,14 +199,14 @@ void OptionsWidget::setupSignalsAndSlots()
             this,                                   &OptionsWidget::activeProjectNameSelectionChanged);
 
     connect(mySourceCodeLocationWidget,             &SourceCodeLocationWidget::newProjectAdded,
-    this,                                   [ = ] (const QString & szProjectName) {
+    this,                                           [ this ] (const QString & szProjectName) {
         comboBoxActiveProjectName->addItem(szProjectName);
         comboBoxActiveProjectName->model()->sort(0);
     }
            );
 
     connect(mySourceCodeLocationWidget,             &SourceCodeLocationWidget::projectListChanged,
-    this,                                   [ = ] () {
+    this,                                           [ this ] () {
         comboBoxActiveProjectName->clear();
         comboBoxActiveProjectName->addItems(mySourceCodeLocationWidget->getProjectNames());
         comboBoxActiveProjectName->model()->sort(0);
@@ -220,48 +219,48 @@ void OptionsWidget::setupSignalsAndSlots()
 
 void OptionsWidget::loadSettings()
 {
-    QString szThemeSelected = AppSettings::getValue(AppSettings::KEY_THEME_NAME, AppSettings::getDefaultValue(AppSettings::KEY_THEME_NAME)).toString();
+    const QString szThemeSelected = AppSettings::getValue(AppSettings::KEY_THEME_NAME, AppSettings::getDefaultValue(AppSettings::KEY_THEME_NAME)).toString();
     comboBoxThemeChoice->setCurrentText(szThemeSelected);
 
-    int nFontSize = AppSettings::getValue(AppSettings::KEY_FONT_SIZE, AppSettings::getDefaultValue(AppSettings::KEY_FONT_SIZE)).toInt();
+    const int nFontSize = AppSettings::getValue(AppSettings::KEY_FONT_SIZE, AppSettings::getDefaultValue(AppSettings::KEY_FONT_SIZE)).toInt();
     spinBoxFontSize->setValue(nFontSize);
 
-    int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, AppSettings::getDefaultValue(AppSettings::KEY_ROW_HEIGHT_BIAS)).toInt();
+    const int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, AppSettings::getDefaultValue(AppSettings::KEY_ROW_HEIGHT_BIAS)).toInt();
     spinBoxRowHeightBias->setValue(nRowBias);
 
-    bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, false).toBool();
+    const bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, false).toBool();
     checkBoxFormatExportedLogs->setChecked(bFormatExportedLogs);
 
-    QString szCodeLanguage = SourceCodeHandler::getCurrentLanguage();
+    const QString szCodeLanguage = SourceCodeHandler::getCurrentLanguage();
     comboBoxSupportedLanguages->setCurrentText(szCodeLanguage);
 
-    QString szEditorName = SourceCodeHandler::getCurrentEditorName();
+    const QString szEditorName = SourceCodeHandler::getCurrentEditorName();
     comboBoxCodeEditorNames->setCurrentText(szEditorName);
 
-    QString szCurrentProject = SourceCodeHandler::getCurrentProjectName();
+    const QString szCurrentProject = SourceCodeHandler::getCurrentProjectName();
     comboBoxActiveProjectName->setCurrentText(szCurrentProject);
 
     lineEditEditorLocation->setText(SourceCodeHandler::getEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())));
-    lineEditEditorHandling->setText(SourceCodeHandler::getEditorHandling(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())));
+    lineEditEditorHandling->setText(SourceCodeHandler::getEditorArguments(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())).join(' '));
 }
 
-QStringList OptionsWidget::loadThemeChoices()
+QStringList OptionsWidget::loadThemeChoices() const
 {
-    QDir myThemesDir(GlobalConstants::SETTINGS_FOLDER_THEMES);
+    const QDir myThemesDir(GlobalConstants::SETTINGS_FOLDER_THEMES);
 
     QStringList szaThemesAvailable = myThemesDir.entryList(QStringList("*" + GlobalConstants::FILE_EXTENSION_QSS), QDir::Files, QDir::Name | QDir::IgnoreCase);
 
-    szaThemesAvailable.replaceInStrings(GlobalConstants::FILE_EXTENSION_QSS, QLatin1String(""));
+    szaThemesAvailable.replaceInStrings(GlobalConstants::FILE_EXTENSION_QSS, QStringLiteral(""));
 
     return szaThemesAvailable;
 }
 
-void OptionsWidget::themeSelectionChanged(const QString &szNewTheme)
+void OptionsWidget::themeSelectionChanged(const QString &szNewTheme) const
 {
-    QString szThemeFilename(GlobalConstants::SETTINGS_FOLDER_THEMES
-                            + "/"
-                            + szNewTheme
-                            + GlobalConstants::FILE_EXTENSION_QSS);
+    const QString szThemeFilename(GlobalConstants::SETTINGS_FOLDER_THEMES
+                                  + "/"
+                                  + szNewTheme
+                                  + GlobalConstants::FILE_EXTENSION_QSS);
 
     if (QFileInfo::exists(szThemeFilename) == false) {
         return;
@@ -303,7 +302,7 @@ void OptionsWidget::rowHeightBiasChangedSlot(const int nValue)
     AppSettings::setValue(AppSettings::KEY_ROW_HEIGHT_BIAS, nValue);
 }
 
-void OptionsWidget::formatExportedLogsChanged(const int nState)
+void OptionsWidget::formatExportedLogsChanged(const int nState) const
 {
     switch (static_cast<Qt::CheckState>(nState)) {
         case Qt::Unchecked:
@@ -318,7 +317,7 @@ void OptionsWidget::formatExportedLogsChanged(const int nState)
     }
 }
 
-void OptionsWidget::codeEditorLanguageChanged(const QString &szNewLanguage)
+void OptionsWidget::codeEditorLanguageChanged(const QString &szNewLanguage) const
 {
     SourceCodeHandler::setCurrentLanguage(szNewLanguage);
 }
@@ -328,15 +327,15 @@ void OptionsWidget::codeEditorSelectionChanged(const QString &szNewEditor)
     SourceCodeHandler::setCurrentEditor(szNewEditor);
 
     lineEditEditorLocation->setText(SourceCodeHandler::getEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())));
-    lineEditEditorHandling->setText(SourceCodeHandler::getEditorHandling(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())));
+    lineEditEditorHandling->setText(SourceCodeHandler::getEditorArguments(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex())).join(' '));
 }
 
 void OptionsWidget::codeEditorLocationChanged(const QString &szNewLocation)
 {
-    bool bFileExists = QFile::exists(szNewLocation);
+    const bool bFileExists = QFile::exists(szNewLocation);
 
     if (bFileExists == true) {
-        lineEditEditorLocation->setStyleSheet(QLatin1String(""));
+        lineEditEditorLocation->setStyleSheet(QStringLiteral(""));
         SourceCodeHandler::setEditorLocation(static_cast<SourceCodeHandler::SourceCodeEditors>(comboBoxCodeEditorNames->currentIndex()), szNewLocation);
 
     } else {
@@ -344,7 +343,7 @@ void OptionsWidget::codeEditorLocationChanged(const QString &szNewLocation)
     }
 }
 
-void OptionsWidget::activeProjectNameSelectionChanged(const QString &szProjectName)
+void OptionsWidget::activeProjectNameSelectionChanged(const QString &szProjectName) const
 {
     SourceCodeHandler::setCurrentProjectName(szProjectName);
 }

@@ -44,7 +44,7 @@ private slots:
 
 signals:
     void connectionInProgress();
-    void connectionSuccess(const QString &szInfo = QLatin1String(""));
+    void connectionSuccess(const QString &szInfo = QStringLiteral(""));
     void connectionError(int nSocketError, const QString &szError);
     void newMessageReceived(const QString &szMessage);
 

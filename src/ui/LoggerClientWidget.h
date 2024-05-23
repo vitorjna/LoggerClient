@@ -75,7 +75,7 @@ private:
     void updateButtonsRowCountDependent(LogMode eNewMode = COUNT_LOG_MODE);
     void resizeColumnsIfNeeded(bool bIgnoreRowCount = false);
 
-    void saveTableToFile(const QString &szFilename = QLatin1String(""));
+    void saveTableToFile(const QString &szFilename = QStringLiteral(""));
 
     QString getClientInfoMessage();
 

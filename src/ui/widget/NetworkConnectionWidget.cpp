@@ -144,21 +144,21 @@ void NetworkConnectionWidget::setupUi()
         myServerConnectionLayout->addWidget(buttonManageAddresses);
     }
 
-    completerConnectionName = new Completer(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
+    completerConnectionName = new Completer(myNetworkAddressesManagerWidget->getModel(), this);
     completerConnectionName->setCompletionColumn(NetworkAddressesEnum::COLUMN_ADDRESS_NAME);
     completerConnectionName->setCompletionMode(QCompleter::PopupCompletion);
     completerConnectionName->setCaseSensitivity(Qt::CaseInsensitive);
     completerConnectionName->setFilterMode(Qt::MatchContains);
     lineEditServerName->setCompleter(completerConnectionName);
 
-    completerServerIpV4 = new Completer(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
+    completerServerIpV4 = new Completer(myNetworkAddressesManagerWidget->getModel(), this);
     completerServerIpV4->setCompletionColumn(NetworkAddressesEnum::COLUMN_SERVER_IP);
     completerServerIpV4->setCompletionMode(QCompleter::PopupCompletion);
     completerServerIpV4->setCaseSensitivity(Qt::CaseInsensitive);
     completerServerIpV4->setFilterMode(Qt::MatchContains);
     lineEditServerIpV4->setCompleter(completerServerIpV4);
 
-    completerServerPort = new Completer(static_cast<QAbstractItemModel *>(myNetworkAddressesManagerWidget->getModel()), this);
+    completerServerPort = new Completer(myNetworkAddressesManagerWidget->getModel(), this);
     completerServerPort->setCompletionColumn(NetworkAddressesEnum::COLUMN_SERVER_PORT);
     completerServerPort->setCompletionMode(QCompleter::PopupCompletion);
     completerServerPort->setCaseSensitivity(Qt::CaseInsensitive);
@@ -182,7 +182,7 @@ void NetworkConnectionWidget::setupSignalsAndSlots()
             this,                               &NetworkConnectionWidget::buttonManageAddressesToggled);
 
     connect(myNetworkAddressesManagerWidget,    &NetworkAddressesManagerWidget::aboutToHide,
-            this,                               [ = ] { buttonManageAddresses->setChecked(false); } );
+            this,                               [ this ] { buttonManageAddresses->setChecked(false); } );
 
     connect(myNetworkAddressesManagerWidget,    &NetworkAddressesManagerWidget::connectionRequested,
             this,                               &NetworkConnectionWidget::connectionRequested);
@@ -197,18 +197,18 @@ void NetworkConnectionWidget::setupSignalsAndSlots()
             this,                               &NetworkConnectionWidget::lineEditServerPortEdited);
 
     connect(completerConnectionName,            QOverload<const QString &>::of(&QCompleter::activated),
-    this,                               [ = ] (const QString & text) { completerOptionChosen(text, NetworkAddressesEnum::COLUMN_ADDRESS_NAME); } );
+    this,                               [ this ] (const QString & text) { completerOptionChosen(text, NetworkAddressesEnum::COLUMN_ADDRESS_NAME); } );
 
     connect(completerServerIpV4,                QOverload<const QString &>::of(&QCompleter::activated),
-    this,                               [ = ] (const QString & text) { completerOptionChosen(text, NetworkAddressesEnum::COLUMN_SERVER_IP); } );
+    this,                               [ this ] (const QString & text) { completerOptionChosen(text, NetworkAddressesEnum::COLUMN_SERVER_IP); } );
 
     connect(completerServerPort,                QOverload<const QString &>::of(&QCompleter::activated),
-    this,                               [ = ] (const QString & text) { completerOptionChosen(text, NetworkAddressesEnum::COLUMN_SERVER_PORT); } );
+    this,                               [ this ] (const QString & text) { completerOptionChosen(text, NetworkAddressesEnum::COLUMN_SERVER_PORT); } );
 }
 
 void NetworkConnectionWidget::completerOptionChosen(const QString &szOption, const NetworkAddressesEnum::Columns eColumn)
 {
-    QStringList szaRow = myNetworkAddressesManagerWidget->getRow(szOption, eColumn);
+    const QStringList szaRow = myNetworkAddressesManagerWidget->getRow(szOption, eColumn);
 
     if (szaRow.size() != NetworkAddressesEnum::COUNT_TABLE_COLUMNS) {
         ToastNotificationWidget::showMessage(this, tr("Search failed"), ToastNotificationWidget::ERROR, 2000);

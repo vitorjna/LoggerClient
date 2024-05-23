@@ -17,13 +17,13 @@ NetworkAddressesManagerWidget::~NetworkAddressesManagerWidget() = default;
 
 QStringList NetworkAddressesManagerWidget::getRow(const QString &szFind, const NetworkAddressesEnum::Columns eColumn)
 {
-    QList<QStandardItem *> myMatches = tableModelAddresses->findItems(szFind, Qt::MatchStartsWith, eColumn);
+    const QList<QStandardItem *> myMatches = tableModelAddresses->findItems(szFind, Qt::MatchStartsWith, eColumn);
 
     if (myMatches.isEmpty() == true) {
         return QStringList();
     }
 
-    int nRow = myMatches.at(0)->row();
+    const int nRow = myMatches.at(0)->row();
 
     QStringList szaMatches;
     szaMatches.reserve(NetworkAddressesEnum::COUNT_TABLE_COLUMNS);
@@ -37,7 +37,7 @@ QStringList NetworkAddressesManagerWidget::getRow(const QString &szFind, const N
 
 QStringList NetworkAddressesManagerWidget::getMatches(const QString &szFind, const NetworkAddressesEnum::Columns eColumn, const Qt::MatchFlags eMatchFlag)
 {
-    QList<QStandardItem *> myMatches = tableModelAddresses->findItems(szFind, eMatchFlag, eColumn);
+    const QList<QStandardItem *> myMatches = tableModelAddresses->findItems(szFind, eMatchFlag, eColumn);
 
     if (myMatches.isEmpty() == true) {
         return QStringList();
@@ -132,9 +132,9 @@ void NetworkAddressesManagerWidget::pushButtonSaveAddressPushed(bool checked)
 
 void NetworkAddressesManagerWidget::customContextMenuRequestedOnTableView(const QPoint &pos)
 {
-    QModelIndex myModelIndex = tableViewAddresses->indexAt(pos);
+    const QModelIndex myModelIndex = tableViewAddresses->indexAt(pos);
 
-    int nRow = myModelIndex.row();
+    const int nRow = myModelIndex.row();
 
     QList<QAction *> *myActionList = new QList<QAction *>();
 
@@ -257,7 +257,7 @@ void NetworkAddressesManagerWidget::setupUi()
 void NetworkAddressesManagerWidget::setupSignalsAndSlots()
 {
     connect(this,                                   &NetworkAddressesManagerWidget::connectionRequested,
-            this,                                   [ = ] { this->hide(); });
+            this,                                   [ this ] { this->hide(); });
 
     connect(pushButtonSaveAddress,                  &QPushButton::clicked,
             this,                                   &NetworkAddressesManagerWidget::pushButtonSaveAddressPushed);
@@ -267,7 +267,7 @@ void NetworkAddressesManagerWidget::setupSignalsAndSlots()
 
     connect(tableViewAddresses,                     &StandardItemView::activated,
             this,
-    [ = ] (const QModelIndex & index) {
+    [ this ] (const QModelIndex & index) {
         if (index.isValid() == true) {
             emit connectionRequested(tableModelAddresses->item(index.row(), NetworkAddressesEnum::COLUMN_ADDRESS_NAME)->text());
         }
@@ -282,22 +282,23 @@ void NetworkAddressesManagerWidget::loadSettings()
 
         const QStringList szaNetworkAddresses = szNetworkAddresses.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
-        for (int nRow = 0; nRow < szaNetworkAddresses.size(); ++nRow) {
+        QList<QStandardItem *> myTableRow;
+        myTableRow.reserve(NetworkAddressesEnum::COUNT_TABLE_COLUMNS);
 
-            const QStringList szaNetworkAddress = szaNetworkAddresses.at(nRow).split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
+        for (const QString &szNetworkAddressRow : szaNetworkAddresses) {
+            const QStringList szaNetworkAddress = szNetworkAddressRow.split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
 
             if (szaNetworkAddress.size() != NetworkAddressesEnum::COUNT_TABLE_COLUMNS) {
-                ToastNotificationWidget::showMessage(this, tr("Could not parse address: ") + szaNetworkAddresses.at(nRow), ToastNotificationWidget::ERROR, 3000);
+                ToastNotificationWidget::showMessage(this, tr("Could not parse address: ") + szNetworkAddressRow, ToastNotificationWidget::ERROR, 3000);
                 continue;
             }
-
-            QList<QStandardItem *> myTableRow;
 
             for (int nCol = 0; nCol < NetworkAddressesEnum::COUNT_TABLE_COLUMNS; ++nCol) {
                 myTableRow.append(new QStandardItem(szaNetworkAddress.at(nCol)));
             }
 
             tableModelAddresses->appendRow(myTableRow);
+            myTableRow.clear();
         }
     }
 }
@@ -307,8 +308,9 @@ void NetworkAddressesManagerWidget::saveSettings()
     QStringList szaNetworkAddresses;
     szaNetworkAddresses.reserve(tableModelAddresses->rowCount());
 
+    QStringList szaNetworkAddress;
+
     for (int nRow = 0; nRow < tableModelAddresses->rowCount(); ++nRow) {
-        QStringList szaNetworkAddress;
 
         for (int nColumn = 0; nColumn < NetworkAddressesEnum::COUNT_TABLE_COLUMNS; ++nColumn) {
             const QString szText = tableModelAddresses->item(nRow, nColumn)->text();
@@ -325,6 +327,7 @@ void NetworkAddressesManagerWidget::saveSettings()
         }
 
         szaNetworkAddresses.append(szaNetworkAddress.join(GlobalConstants::SEPARATOR_SETTINGS_LIST_2));
+        szaNetworkAddress.clear();
     }
 
     AppSettings::setValue(AppSettings::KEY_LOGGER_SERVER_ADDRESSES, szaNetworkAddresses.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));

@@ -29,7 +29,7 @@
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
-    , IntMutexable(QMutex::NonRecursive)
+    , IntMutexable()
     , bUsingCustomColumnWidth(false)
     , eCurrentMode(COUNT_LOG_MODE)
     , bOpenFileAfterSavingPending(false)
@@ -45,7 +45,7 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     myChannelSocketClient = new ChannelSocketClient();
 
     setupUI();
-    setStyleSheet(QLatin1String(""));
+    setStyleSheet(QStringLiteral(""));
     setupSignalsAndSlots();
     setupShortcuts();
     loadSettings();
@@ -58,7 +58,6 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
 LoggerClientWidget::~LoggerClientWidget()
 {
     MemoryUtils::deletePointer(myProxyModel);
-    MemoryUtils::deleteMutex(myMutex);
 
     myWorkerThread.quit();
     myWorkerThread.wait(200);
@@ -71,9 +70,8 @@ void LoggerClientWidget::setStyleSheet(const QString &szStyleSheet)
 
 void LoggerClientWidget::saveWindowPosition()
 {
-    QPoint myPos = this->pos();
-
-    QSize mySize = this->size();
+    const QPoint myPos = this->pos();
+    const QSize mySize = this->size();
 
     AppSettings::setValue(AppSettings::KEY_WINDOW_POS_MAIN,
                           QString::number(myPos.x())
@@ -218,7 +216,6 @@ void LoggerClientWidget::setupUI()
             myFiltersLayout->addWidget(myKeywordHighlightWidget);
         }
         myMainLayout->addLayout(myFiltersLayout);
-
     }
 
 //    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Expanding), myMainLayout->rowCount(), 0);
@@ -233,8 +230,8 @@ void LoggerClientWidget::setupUI()
 void LoggerClientWidget::setupSignalsAndSlots()
 {
     //CONNECTION SOCKET
-    connect(myChannelSocketClient,      SIGNAL(connectionError(int, QString)),
-            this,                       SLOT(connectionError(int, QString)));
+    connect(myChannelSocketClient,      SIGNAL(connectionError(int,QString)),
+            this,                       SLOT(connectionError(int,QString)));
 
     connect(myChannelSocketClient,      SIGNAL(connectionSuccess(QString)),
             this,                       SLOT(connectionSuccess(QString)));
@@ -256,8 +253,8 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(buttonOpenFile,             SIGNAL(clicked(bool)),
             this,                       SLOT(buttonOpenFileClicked(bool)));
 
-    connect(pushButtonSaveToFile,       SIGNAL(triggered(QAction *)),
-            this,                       SLOT(buttonClickedSaveToFile(QAction *)));
+    connect(pushButtonSaveToFile,       SIGNAL(triggered(QAction*)),
+            this,                       SLOT(buttonClickedSaveToFile(QAction*)));
 
     //TABLE EVENTS
     connect(this,                       &LoggerClientWidget::clearModel,
@@ -299,8 +296,8 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(this,                       &LoggerClientWidget::loggerPatternChangedSignal,
             myProxyModel,               &LoggerTableProxyModel::setLoggerPattern);
 
-    connect(myTableView->horizontalHeader(), SIGNAL(sectionResized(int, int, int)),
-            this,                       SLOT(tableViewHeaderResized(int, int, int)));
+    connect(myTableView->horizontalHeader(), SIGNAL(sectionResized(int,int,int)),
+            this,                       SLOT(tableViewHeaderResized(int,int,int)));
 
     connect(myTableView,                SIGNAL(customContextMenuRequested(QPoint)),
             this,                       SLOT(customContextMenuRequestedOnTableView(QPoint)));
@@ -316,7 +313,7 @@ void LoggerClientWidget::setupSignalsAndSlots()
             myOptionsWidget,            &OptionsWidget::setVisible);
 
     connect(myOptionsWidget,            &OptionsWidget::aboutToHide,
-            pushButtonOptions,          [ = ] { pushButtonOptions->setChecked(false); pushButtonOptions->clearFocus(); });
+            pushButtonOptions,          [ this ] { pushButtonOptions->setChecked(false); pushButtonOptions->clearFocus(); });
 
     connect(myOptionsWidget,            &OptionsWidget::fontSizeChanged,
             this,                       &LoggerClientWidget::fontSizeChanged);
@@ -345,37 +342,37 @@ void LoggerClientWidget::setupShortcuts()
 
     QShortcut *shortcutFontUp           = new QShortcut(QKeySequence(QStringLiteral("Ctrl++")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutFontUp,             &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(1);});
 
     QShortcut *shortcutFontDown         = new QShortcut(QKeySequence(QStringLiteral("Ctrl+-")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutFontDown,           &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(-1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(-1);});
 
     QShortcut *shortcutFontReset        = new QShortcut(QKeySequence(QStringLiteral("Ctrl+0")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutFontReset,           &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(0);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(0);});
 
     QShortcut *shortcutRowHeightUp      = new QShortcut(QKeySequence(QStringLiteral("Alt++")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutRowHeightUp,        &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(1);});
 
     QShortcut *shortcutRowHeightDown    = new QShortcut(QKeySequence(QStringLiteral("Alt+-")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutRowHeightDown,      &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(-1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(-1);});
 
     QShortcut *shortcutRowHeightReset   = new QShortcut(QKeySequence(QStringLiteral("Alt+0")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutRowHeightReset,      &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(0);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(0);});
 }
 
 void LoggerClientWidget::loadSettings()
 {
-    QString szDimensions = AppSettings::getValue(AppSettings::KEY_WINDOW_POS_MAIN, "0").toString();
-    QVector<QStringRef> szraDimensions = szDimensions.splitRef(GlobalConstants::SEPARATOR_SETTINGS_LIST);
+    const QString szDimensions = AppSettings::getValue(AppSettings::KEY_WINDOW_POS_MAIN, "0").toString();
+    const QList<QStringView> szraDimensions = QStringView(szDimensions).split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
     if (szraDimensions.size() == 4) {
-        QPoint myPos(szraDimensions.at(0).toInt(), szraDimensions.at(1).toInt());
-        QSize mySize(szraDimensions.at(2).toInt(), szraDimensions.at(3).toInt());
+        const QPoint myPos(szraDimensions.at(0).toInt(), szraDimensions.at(1).toInt());
+        const QSize mySize(szraDimensions.at(2).toInt(), szraDimensions.at(3).toInt());
 
         this->move(myPos);
         this->resize(mySize);
@@ -384,18 +381,18 @@ void LoggerClientWidget::loadSettings()
         this->resize(600, 800); //default
     }
 
-    QString szServerName = AppSettings::getValue(AppSettings::KEY_SERVER_NAME).toString();
+    const QString szServerName = AppSettings::getValue(AppSettings::KEY_SERVER_NAME).toString();
     myServerConnectionWidget->setName(szServerName);
 
-    QString szServerIpV4 = AppSettings::getValue(AppSettings::KEY_SERVER_IPv4).toString();
+    const QString szServerIpV4 = AppSettings::getValue(AppSettings::KEY_SERVER_IPv4).toString();
     myServerConnectionWidget->setIp(szServerIpV4);
 
-    QString szServerPort = AppSettings::getValue(AppSettings::KEY_SERVER_PORT).toString();
+    const QString szServerPort = AppSettings::getValue(AppSettings::KEY_SERVER_PORT).toString();
     myServerConnectionWidget->setPort(szServerPort);
 
     loggerPatternChanged(myLoggerPatternWidget->getPattern());
 
-    int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
+    const int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
     rowHeightBiasChanged(nRowBias);
 
     keywordHighlightChanged(myKeywordHighlightWidget->getKeywords());
@@ -450,7 +447,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             break;
 
         case LoggerClientWidget::SERVER_CONNECTING: {
-            QString szInfoMessage = tr("Connecting to: ") + getClientInfoMessage();
+            const QString szInfoMessage = tr("Connecting to: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -464,7 +461,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
         }
 
         case LoggerClientWidget::SERVER_CONNECTED: {
-            QString szInfoMessage = tr("Connected to: ") + getClientInfoMessage();
+            const QString szInfoMessage = tr("Connected to: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -486,7 +483,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
         }
 
         case LoggerClientWidget::SERVER_RETRYING: {
-            QString szInfoMessage = tr("Disconnected. Retrying: ") + getClientInfoMessage();
+            const QString szInfoMessage = tr("Disconnected. Retrying: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -589,7 +586,7 @@ void LoggerClientWidget::saveTableToFile(const QString &szFilename)
     if (szFilename.isEmpty() == false) {
         szSavedLogFile = szFilename;
 
-        QString szFileOnlyName = QFileInfo(szSavedLogFile).fileName();
+        const QString szFileOnlyName = QFileInfo(szSavedLogFile).fileName();
 
         myActionsSaveToFile.at(SAVE)->setToolTip(tr("Save") + ' ' + szFileOnlyName);
         myActionsSaveToFile.at(SAVE_AND_OPEN)->setToolTip(tr("Save and open") + ' ' + szFileOnlyName);
@@ -638,7 +635,7 @@ void LoggerClientWidget::buttonConnectToServerToggled(bool bButtonState)
 {
     if (bButtonState == true) {
         myChannelSocketClient->setNeverDies(true); //TODO get this option from an UI checkbox
-        bool bConnectionResult = myChannelSocketClient->connect(myServerConnectionWidget->getIp(), myServerConnectionWidget->getPort());
+        const bool bConnectionResult = myChannelSocketClient->connect(myServerConnectionWidget->getIp(), myServerConnectionWidget->getPort());
 
         if (bConnectionResult == true) {
             setLogWidgetMode(SERVER_CONNECTING);
@@ -650,7 +647,7 @@ void LoggerClientWidget::buttonConnectToServerToggled(bool bButtonState)
         } else {
             setLogWidgetMode(EMPTY);
 
-            ToastNotificationWidget::showMessage(this, QStringLiteral("Wrong IP or Port"), ToastNotificationWidget::ERROR, 2000);
+            ToastNotificationWidget::showMessage(this, tr("Wrong IP or Port"), ToastNotificationWidget::ERROR, 2000);
         }
 
     } else {
@@ -718,8 +715,6 @@ void LoggerClientWidget::pasteText()
 
 void LoggerClientWidget::clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult)
 {
-//    TimeUtils::printTimeMilliseconds();
-
     if (eParsingResult == GlobalConstants::SUCCESS) {
         setLogWidgetMode(CLIPBOARD);
         resizeColumnsIfNeeded(true);
@@ -795,7 +790,7 @@ void LoggerClientWidget::buttonClickedClearFilter(bool bState)
 {
     Q_UNUSED(bState)
 
-    myProxyModel->setFilterRegExp(QRegExp());
+    myProxyModel->setFilterRegularExpression(QRegularExpression());
 
     updateButtonsRowCountDependent();
     selectFocus();
@@ -867,7 +862,7 @@ void LoggerClientWidget::buttonSaveToFileResult(const QString &szFilename)
 
 void LoggerClientWidget::customContextMenuRequestedOnTableView(const QPoint &pos)
 {
-    QModelIndex myModelIndex = myTableView->indexAt(pos);
+    const QModelIndex myModelIndex = myTableView->indexAt(pos);
 
     QList<QAction *> *myActionList = myProxyModel->generateActionsForIndex(myModelIndex, this);
 
@@ -904,7 +899,7 @@ void LoggerClientWidget::searchTextChanged(const QString &szText)
 {
 //    qDebug() << "searchTextChanged:" << szText;
 
-    myProxyModel->setFilterRegExp(QRegExp(szText, Qt::CaseInsensitive, QRegExp::FixedString), false);
+    myProxyModel->setFilterRegExp(QRegularExpression(szText, QRegularExpression::CaseInsensitiveOption), false);
     myProxyModel->setFilterKeyColumn(-1);
 
 //    QModelIndexList myMatches = myProxyModel->match(myProxyModel->index(0, 0), Qt::UserRole, szText, -1, Qt::MatchContains | Qt::MatchFixedString | Qt::MatchWrap);
@@ -971,12 +966,12 @@ void LoggerClientWidget::tableViewHeaderResized(int logicalIndex, int oldSize, i
 
 void LoggerClientWidget::resizeColumnsLoosely()
 {
-    const double nAverageCharWidth = this->font().pointSize() * 0.70; //this->fontMetrics().averageCharWidth() * 1.1;
+    const double dAverageCharWidth = this->font().pointSize() * 0.70; //this->fontMetrics().averageCharWidth() * 1.1;
 
     for (int nColumn = 0; nColumn < myTableView->horizontalHeader()->count(); ++nColumn) {
         const int nSize = myTableView->getColumnMaxCharCount(nColumn, 0, -1, true);
 
-        myTableView->horizontalHeader()->resizeSection(nColumn, qRound(nSize * nAverageCharWidth) + nAverageCharWidth * 3);
+        myTableView->horizontalHeader()->resizeSection(nColumn, static_cast<int>(qRound(nSize * dAverageCharWidth) + dAverageCharWidth * 3));
     }
 }
 
@@ -1014,8 +1009,8 @@ void LoggerClientWidget::dropEvent(QDropEvent *myDropEvent)
         const QMimeData *mime = myDropEvent->mimeData();
         QString szDroppedFile = mime->text();
 
-        if (szDroppedFile.startsWith(QLatin1String("file:///")) == true) {
-            szDroppedFile.remove(0, QLatin1String("file:///").size());
+        if (szDroppedFile.startsWith(QStringLiteral("file:///")) == true) {
+            szDroppedFile.remove(0, QStringLiteral("file:///").size());
         }
 
         emit parseFile(szDroppedFile);
@@ -1044,7 +1039,7 @@ void LoggerClientWidget::moveEvent(QMoveEvent *event)
 void LoggerClientWidget::initDebugFocusChanged()
 {
     ///DEBUG
-    connect(qApp,                       &QApplication::focusChanged,
+    connect(qApp,               &QApplication::focusChanged,
     this,                       [ ] (QWidget * before, QWidget * after) {
         qDebug() << "Focus changed"
                  << "from"

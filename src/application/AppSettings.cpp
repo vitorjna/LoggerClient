@@ -11,7 +11,7 @@ void AppSettings::setValue(const AppSettings::SETTINGS eKey, const QVariant &myV
 QVariant AppSettings::getValue(const AppSettings::SETTINGS eKey, const QVariant &myDefaultValue)
 {
     getMySettings()->beginGroup(getKeyGroup(eKey));
-    QVariant myValue = getMySettings()->value(getKeyString(eKey), myDefaultValue);
+    const QVariant myValue = getMySettings()->value(getKeyString(eKey), myDefaultValue);
     getMySettings()->endGroup();
 
     return myValue;
@@ -89,7 +89,7 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
             return GlobalConstants::APPLICATION_OPTIONS;
 
         case COUNT_APP_SETTINGS:
-            return QLatin1String("");
+            return QStringLiteral("");
     }
 }
 
@@ -151,7 +151,7 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
             return GlobalConstants::SETTINGS_WINDOW_POS_MAIN;
 
         case COUNT_APP_SETTINGS:
-            return QLatin1String("");
+            return QStringLiteral("");
     }
 }
 

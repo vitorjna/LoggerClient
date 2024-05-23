@@ -36,7 +36,7 @@ private:
     void setupSignalsAndSlots();
     void loadSettings();
 
-    QStringList loadThemeChoices();
+    QStringList loadThemeChoices() const;
 
     QComboBox                   *comboBoxThemeChoice{};
     QSpinBox                    *spinBoxFontSize{};
@@ -62,18 +62,18 @@ signals:
     void rowHeightBiasChanged(const int nValue);
 
 protected slots:
-    void themeSelectionChanged(const QString &szNewTheme);
+    void themeSelectionChanged(const QString &szNewTheme) const;
 
     void fontSizeChangedSlot(const int nValue);
     void rowHeightBiasChangedSlot(const int nValue);
 
-    void formatExportedLogsChanged(const int nState);
+    void formatExportedLogsChanged(const int nState) const;
 
-    void codeEditorLanguageChanged(const QString &szNewLanguage);
+    void codeEditorLanguageChanged(const QString &szNewLanguage) const;
     void codeEditorSelectionChanged(const QString &szNewEditor);
     void codeEditorLocationChanged(const QString &szNewLocation);
 
-    void activeProjectNameSelectionChanged(const QString &szProjectName);
+    void activeProjectNameSelectionChanged(const QString &szProjectName) const;
 
     void buttonEditorLocationPickClicked(bool bState);
 

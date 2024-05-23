@@ -2,7 +2,6 @@
 #include "application/AppSettings.h"
 #include "application/GlobalConstants.h"
 #include "ui/ToastNotificationWidget.h"
-#include "util/NetworkUtils.h"
 #include "view/StandardItemView.h"
 
 LoggerPatternManagerWidget::LoggerPatternManagerWidget(QWidget *parent)
@@ -18,13 +17,13 @@ LoggerPatternManagerWidget::~LoggerPatternManagerWidget() = default;
 
 QStringList LoggerPatternManagerWidget::getRow(const QString &szFind, const LoggerPatternsEnum::Columns eColumn)
 {
-    QList<QStandardItem *> myMatches = tableModelPatterns->findItems(szFind, Qt::MatchExactly, eColumn);
+    const QList<QStandardItem *> myMatches = tableModelPatterns->findItems(szFind, Qt::MatchExactly, eColumn);
 
     if (myMatches.isEmpty() == true) {
         return QStringList();
     }
 
-    int nRow = myMatches.at(0)->row();
+    const int nRow = myMatches.at(0)->row();
 
     QStringList szaMatches;
     szaMatches.reserve(LoggerPatternsEnum::COUNT_TABLE_COLUMNS);
@@ -38,7 +37,7 @@ QStringList LoggerPatternManagerWidget::getRow(const QString &szFind, const Logg
 
 int LoggerPatternManagerWidget::getRowIndex(const QString &szFind, const LoggerPatternsEnum::Columns eColumn)
 {
-    QList<QStandardItem *> myMatches = tableModelPatterns->findItems(szFind, Qt::MatchExactly, eColumn);
+    const QList<QStandardItem *> myMatches = tableModelPatterns->findItems(szFind, Qt::MatchExactly, eColumn);
 
     if (myMatches.isEmpty() == true) {
         return -1;
@@ -49,7 +48,7 @@ int LoggerPatternManagerWidget::getRowIndex(const QString &szFind, const LoggerP
 
 QStringList LoggerPatternManagerWidget::getMatches(const QString &szFind, const LoggerPatternsEnum::Columns eColumn, const Qt::MatchFlags eMatchFlag)
 {
-    QList<QStandardItem *> myMatches = tableModelPatterns->findItems(szFind, eMatchFlag, eColumn);
+    const QList<QStandardItem *> myMatches = tableModelPatterns->findItems(szFind, eMatchFlag, eColumn);
 
     if (myMatches.isEmpty() == true) {
         return QStringList();
@@ -202,14 +201,13 @@ void LoggerPatternManagerWidget::setupUi()
 void LoggerPatternManagerWidget::setupSignalsAndSlots()
 {
     connect(this,                                   &LoggerPatternManagerWidget::patternChangeRequested,
-            this,                                   [ = ] { this->hide(); });
+            this,                                   [ this ] { this->hide(); });
 
     connect(pushButtonSavePattern,                  &QPushButton::clicked,
             this,                                   &LoggerPatternManagerWidget::pushButtonSavePatternPushed);
 
     connect(tableViewPatterns,                      &StandardItemView::activated,
-            this,
-    [ = ] (const QModelIndex & index) {
+    this,                                           [ this ] (const QModelIndex & index) {
         if (index.isValid() == true) {
             emit patternChangeRequested(tableModelPatterns->item(index.row(), LoggerPatternsEnum::COLUMN_PATTERN_NAME)->text());
         }
@@ -224,22 +222,23 @@ void LoggerPatternManagerWidget::loadSettings()
 
         const QStringList szaLoggerPatterns = szLoggerPatterns.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
-        for (int nRow = 0; nRow < szaLoggerPatterns.size(); ++nRow) {
+        QList<QStandardItem *> myTableRow;
+        myTableRow.reserve(LoggerPatternsEnum::COUNT_TABLE_COLUMNS);
 
-            const QStringList szaLoggerPattern = szaLoggerPatterns.at(nRow).split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
+        for (const QString &szLoggerPatternRow : szaLoggerPatterns) {
+            const QStringList szaLoggerPattern = szLoggerPatternRow.split(GlobalConstants::SEPARATOR_SETTINGS_LIST_2);
 
             if (szaLoggerPattern.size() != LoggerPatternsEnum::COUNT_TABLE_COLUMNS) {
-                ToastNotificationWidget::showMessage(this, tr("Could not parse address: ") + szaLoggerPatterns.at(nRow), ToastNotificationWidget::ERROR, 3000);
+                ToastNotificationWidget::showMessage(this, tr("Could not parse pattern: ") + szLoggerPatternRow, ToastNotificationWidget::ERROR, 3000);
                 continue;
             }
 
-            QList<QStandardItem *> myTableRow;
-
-            for (int nCol = 0; nCol < LoggerPatternsEnum::COUNT_TABLE_COLUMNS; ++nCol) {
-                myTableRow.append(new QStandardItem(szaLoggerPattern.at(nCol)));
+            for (const QString &szLoggerPattern : szaLoggerPattern) {
+                myTableRow.append(new QStandardItem(szLoggerPattern));
             }
 
             tableModelPatterns->appendRow(myTableRow);
+            myTableRow.clear();
         }
     }
 }
@@ -249,11 +248,12 @@ void LoggerPatternManagerWidget::saveSettings()
     QStringList szaLoggerPatterns;
     szaLoggerPatterns.reserve(tableModelPatterns->rowCount());
 
-    for (int nRow = 0; nRow < tableModelPatterns->rowCount(); ++nRow) {
-        QStringList szaLoggerPattern;
+    QStringList szaLoggerPattern;
+    szaLoggerPattern.reserve(LoggerPatternsEnum::COUNT_TABLE_COLUMNS);
 
+    for (int nRow = 0; nRow < tableModelPatterns->rowCount(); ++nRow) {
         for (int nColumn = 0; nColumn < LoggerPatternsEnum::COUNT_TABLE_COLUMNS; ++nColumn) {
-            QString szText = tableModelPatterns->item(nRow, nColumn)->text();
+            const QString szText = tableModelPatterns->item(nRow, nColumn)->text();
 
             if (szText.trimmed().isEmpty() == true) {
                 break;
@@ -267,6 +267,7 @@ void LoggerPatternManagerWidget::saveSettings()
         }
 
         szaLoggerPatterns.append(szaLoggerPattern.join(GlobalConstants::SEPARATOR_SETTINGS_LIST_2));
+        szaLoggerPattern.clear();
     }
 
     AppSettings::setValue(AppSettings::KEY_LOGGER_PATTERN_LIST, szaLoggerPatterns.join(GlobalConstants::SEPARATOR_SETTINGS_LIST));

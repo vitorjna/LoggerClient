@@ -73,20 +73,20 @@ void ChannelSocketClient::clearIpAndPort(bool bForce)
 
 void ChannelSocketClient::setupSignalsAndSlots()
 {
-    QObject::connect(mySocket,      SIGNAL(stateChanged(QAbstractSocket::SocketState)),
-                     this,          SLOT(socketStateChanged(QAbstractSocket::SocketState)));
+    QObject::connect(mySocket,      &QAbstractSocket::stateChanged,
+                     this,          &ChannelSocketClient::socketStateChanged);
 
-    QObject::connect(mySocket,      SIGNAL(error(QAbstractSocket::SocketError)),
-                     this,          SLOT(socketError(QAbstractSocket::SocketError)));
+    QObject::connect(mySocket,      &QAbstractSocket::errorOccurred,
+                     this,          &ChannelSocketClient::socketError);
 
-    QObject::connect(mySocket,      SIGNAL(newMessage(QString)),
-                     this,          SLOT(newMessageOnSocket(QString)));
+    QObject::connect(mySocket,      &TcpSocketThreadable::newMessage,
+                     this,          &ChannelSocketClient::newMessageOnSocket);
 
-    QObject::connect(this,          SIGNAL(connectSocket(QString, quint16)),
-                     mySocket,      SLOT(connectSocket(QString, quint16)));
+    QObject::connect(this,          &ChannelSocketClient::connectSocket,
+                     mySocket,      &TcpSocketThreadable::connectSocket);
 
-    QObject::connect(this,          SIGNAL(disconnectSocket()),
-                     mySocket,      SLOT(disconnectSocket()));
+    QObject::connect(this,          &ChannelSocketClient::disconnectSocket,
+                     mySocket,      &TcpSocketThreadable::disconnectSocket);
 
 }
 
@@ -119,7 +119,7 @@ void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocke
     }
 
 #ifdef DEBUG_STUFF
-    QMetaEnum myMetaEnum = QMetaEnum::fromType<QAbstractSocket::SocketState>();
+    const QMetaEnum myMetaEnum = QMetaEnum::fromType<QAbstractSocket::SocketState>();
     qDebug() << "socketStateChanged" << myMetaEnum.valueToKey(eSocketState);
 #endif
 

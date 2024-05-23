@@ -2,8 +2,8 @@
 
 #include <QApplication>
 #include <QDebug>
-#include <QDesktopWidget>
 #include <QLabel>
+#include <QScreen>
 #include <QTimer>
 #include <QTimerEvent>
 #include <QVBoxLayout>

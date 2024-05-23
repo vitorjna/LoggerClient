@@ -19,7 +19,7 @@ QString LoggerPatternsModel::getColumnName(const LoggerPatternsEnum::Columns eCo
             return tr("Pattern");
 
         case LoggerPatternsEnum::COUNT_TABLE_COLUMNS:
-            return QLatin1String("");
+            return QStringLiteral("");
     }
 }
 

@@ -38,9 +38,9 @@ void registerMetatypes()
 
 int main(int argc, char **argv)
 {
-    qsrand(QTime::currentTime().msec());
+    srand(QTime::currentTime().msec());
 
-    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    // QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
 //    Tests::run();
 

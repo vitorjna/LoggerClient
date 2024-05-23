@@ -11,7 +11,7 @@ LoggerTableItemModel::LoggerTableItemModel(LoggerTableProxyModel *myProxyModel, 
 
 LoggerTableItemModel::~LoggerTableItemModel() = default;
 
-QColor LoggerTableItemModel::getColorForLevel(const QString &szLevel) const
+QColor LoggerTableItemModel::getColorForLevel(const QString &szLevel)
 {
     //    static int nLevels = {0, 32, 64, 96, 128, 160, 192, 224, 255};
 
@@ -24,7 +24,7 @@ QColor LoggerTableItemModel::getColorForLevel(const QString &szLevel) const
     static const QColor myColorUnknown(Qt::gray);
 
     //TODO place colors in a class, as statics
-    switch (static_cast<LoggerEnum::LoggerSeverity>(LoggerTableProxyModel::getLogSeverityFromName(szLevel.trimmed().toUpper()))) {
+    switch (static_cast<LoggerEnum::LoggerSeverity>(LoggerTableProxyModel::getLogSeverityFromName(szLevel))) {
         case LoggerEnum::TRACE:
             return myColorTrace;
 
@@ -76,41 +76,33 @@ QVariant LoggerTableItemModel::data(const QModelIndex &index, int role) const
         case Qt::BackgroundRole:
             if (this->columnCount() > 1) {
 
-                if (szaKeywords.size() != 0) {
-                    int nColPosClass    = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_CLASS);
-                    int nColPosThreadId = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_THREADID);
-                    int nColPosSeverity = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_SEVERITY);
-                    int nColPosMessage  = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_MESSAGE);
+                if (szaKeywords.empty() == false) {
+                    static const QList<LoggerEnum::Columns> naColsToCheck = { LoggerEnum::COLUMN_CLASS,
+                                                                              LoggerEnum::COLUMN_THREADID,
+                                                                              LoggerEnum::COLUMN_SEVERITY,
+                                                                              LoggerEnum::COLUMN_MESSAGE
+                                                                            };
 
-                    if (nColPosClass != -1
-                        || nColPosThreadId != -1
-                        || nColPosSeverity != -1
-                        || nColPosMessage != -1) {
+                    for (const LoggerEnum::Columns eCol : naColsToCheck) {
+                        const qsizetype nColPos = myProxyModel->getVisibleIndexForColumn(eCol);
 
-                        const QString &szClass      = nColPosClass    == -1 ? "" : this->item(index.row(), nColPosClass)->text();
-                        const QString &szThreadId   = nColPosThreadId == -1 ? "" : this->item(index.row(), nColPosThreadId)->text();
-                        const QString &szSeverity   = nColPosSeverity == -1 ? "" : this->item(index.row(), nColPosSeverity)->text();
-                        const QString &szMessage    = nColPosMessage  == -1 ? "" : this->item(index.row(), nColPosMessage)->text();
+                        if (nColPos != -1) {
+                            const QString &szText = this->item(index.row(), nColPos)->text();
 
-                        for (const QString &szKeyword : szaKeywords) {
-                            if (szClass.contains(szKeyword)
-                                || szThreadId.contains(szKeyword)
-                                || szSeverity.contains(szKeyword)
-                                || szMessage.contains(szKeyword)) {
-
-                                static const QBrush myBackgroundColorHighlight(QColor(255, 64, 64, 224));
-                                return myBackgroundColorHighlight;
+                            for (const QString &szKeyword : szaKeywords) {
+                                if (szText.contains(szKeyword)) {
+                                    static const QBrush myBackgroundColorHighlight(QColor(255, 64, 64, 224));
+                                    return myBackgroundColorHighlight;
+                                }
                             }
                         }
                     }
                 }
 
-                int nColumnLevelPos = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_SEVERITY);
+                const qsizetype nColumnLevelPos = myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_SEVERITY);
 
                 if (nColumnLevelPos != -1) {
-                    const QStandardItem *myStandardItem = this->item(index.row(), nColumnLevelPos);
-
-                    return QBrush(getColorForLevel(myStandardItem->text()));
+                    return QBrush(getColorForLevel(this->item(index.row(), nColumnLevelPos)->text()));
                 }
             }
 

@@ -120,7 +120,7 @@ void StandardItemModel::appendRow(QStandardItem *item)
 void StandardItemModel::setupSignalsAndSlots()
 {
     connect(this,   &QStandardItemModel::itemChanged,
-            this,   [ = ] { sort(); });
+            this,   [ this ] { sort(); });
 }
 
 void StandardItemModel::sort(int column, Qt::SortOrder order)

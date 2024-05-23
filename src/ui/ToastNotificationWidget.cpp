@@ -12,7 +12,7 @@ void ToastNotificationWidget::showMessage(QWidget *myContainer, const QString &s
     myWidget->adjustSize();
 
     if (myContainer == nullptr) { //TODO toasts don't work if the container is not visible yet. They're also not mapping correctly to the desktop as a fallback
-        myWidget->move(myContainer->mapToGlobal(qApp->desktop()->screen()->rect().center()));
+        myWidget->move(myContainer->mapToGlobal(QApplication::primaryScreen()->geometry().center()));
 
     } else {
         myWidget->move(myContainer->mapToGlobal(myContainer->rect().center()) - myWidget->rect().center());
@@ -36,26 +36,26 @@ void ToastNotificationWidget::showMessage(QWidget *myContainer, const QString &s
 
 void ToastNotificationWidget::setStyleSheet(const NotificationType eNotifType)
 {
-    QString szColor;
-
     switch (eNotifType) {
-        case ToastNotificationWidget::SUCCESS:
-            szColor = QColor(0, 192, 0, 192).name();
+        case ToastNotificationWidget::SUCCESS: {
+            static const QString szColor = QColor(0, 192, 0, 192).name();
+            this->setStyleSheet(QStringLiteral("background-color:%1;").arg(szColor));
             break;
+        }
 
         case ToastNotificationWidget::ERROR:
-        case ToastNotificationWidget::COUNT_NOTIF_TYPES:
-            szColor = QColor(192, 0, 0, 192).name();
+        case ToastNotificationWidget::COUNT_NOTIF_TYPES: {
+            static const QString szColor = QColor(192, 0, 0, 192).name();
+            this->setStyleSheet(QStringLiteral("background-color:%1;").arg(szColor));
             break;
+        }
 
-        case ToastNotificationWidget::INFO:
-            szColor = QColor(192, 192, 0, 192).name();
+        case ToastNotificationWidget::INFO: {
+            static const QString szColor = QColor(192, 192, 0, 192).name();
+            this->setStyleSheet(QStringLiteral("background-color:%1;").arg(szColor));
             break;
+        }
     }
-
-    this->setStyleSheet(QStringLiteral("background-color:%1;")
-                        .arg(szColor)
-                       );
 
     labelMessage->setStyleSheet(QStringLiteral("color:black;font-weight:bold;"));
 }
@@ -87,7 +87,6 @@ void ToastNotificationWidget::setupUi()
     labelMessage->setAlignment(Qt::AlignCenter);
 
     myMainLayout->addWidget(labelMessage, 0, Qt::AlignHCenter);
-
 
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);

@@ -1,6 +1,7 @@
 #include "TimeUtils.h"
 
 QElapsedTimer *TimeUtils::myTimer = new QElapsedTimer();
+int64_t TimeUtils::llTimeCount = 0;
 
 void TimeUtils::startTimer()
 {
@@ -34,3 +35,22 @@ void TimeUtils::printTimeMilliseconds(bool bResetTimer)
     qDebug() << getTimeMilliseconds(bResetTimer);
 }
 
+void TimeUtils::saveTime()
+{
+    llTimeCount += myTimer->nsecsElapsed();
+}
+
+void TimeUtils::resetSavedTime()
+{
+    llTimeCount = 0;
+}
+
+int64_t TimeUtils::getSavedTimeMilliseconds()
+{
+    return llTimeCount / 1000000;
+}
+
+int64_t TimeUtils::getSavedTimeMicroseconds()
+{
+    return llTimeCount / 1000;
+}

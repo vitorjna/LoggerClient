@@ -19,6 +19,5 @@ public:
     using QCompleter::QCompleter; //inherit constructors
 
     //reimplemented
-public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 };

@@ -19,7 +19,7 @@ QString SourceCodeLocationsModel::getColumnName(const SourceCodeLocationsEnum::C
             return tr("Path");
 
         case SourceCodeLocationsEnum::COUNT_TABLE_COLUMNS:
-            return QLatin1String("");
+            return QStringLiteral("");
     }
 }
 
