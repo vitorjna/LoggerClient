@@ -27,12 +27,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
-#      - uses: msys2/setup-msys2@v2
-#        with:
-#            install: mingw-w64-x86_64-toolchain
-#            msystem: mingw64
-#            release: false
-    
+    - name: Checkout Project
+      uses: actions/checkout@v4.2.2
+      
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
@@ -40,13 +37,8 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_mingw'
-        dir: '${{github.workspace}}'
-        tools: 'tools_ninja tools_cmake tools_mingw1310'
-        install-deps: 'false'
-        cache: 'true'
-
-    - name: Checkout Project
-      uses: actions/checkout@v4.2.2
+        tools: 'tools_ninja tools_mingw1310'
+        cache: true
       
     # - name: Build Project
     #   uses: threeal/cmake-action@v2.1.0
@@ -57,8 +49,7 @@ jobs:
         # CC: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
         # CXX: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
         # Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
-      run: |
-        cmake -S ${{github.workspace}}/src -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}" -G "Ninja" -B '${{github.workspace}}/build'
+      run: cmake -S ${{github.workspace}}/src -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}" -G "Ninja" -B '${{github.workspace}}/build'
       
     - name: Build
-      run: cmake --build '${{github.workspace}}'/build --target RePr
+      run: cmake --build '${{github.workspace}}'/build --target LoggerClient
