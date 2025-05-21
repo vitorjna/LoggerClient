@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - build_.*
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  BUILD_TYPE: Release
+  
+jobs:
+  call-workflow:
+    uses: vitorjna/LoggerClient/.github/workflows/windows.yml@main
+    
+  build:
+    runs-on: windows-latest
+
+    steps:   
+    - name: Deploy
+      run: |
+           echo "TODAY=$(date + '%Y%m%d')" >> $GITHUB_ENV
+           mkdir LoggerClient-${{env.TODAY}}
+           move ${{github.workspace}}/build/LoggerClient.exe LoggerClient-${{env.TODAY}}
+           windeployqt LoggerClient-${{env.TODAY}}/LoggerClient.exe -qmldir="${{env.QML_DIR_WIN}}" --compiler-runtime
+           xcopy resources\themes LoggerClient-${{env.TODAY}}\themes    
+
+    - name: Compress release
+      uses: edgarrc/action-7z@v1.0.5
+      with:
+        args: 7z a -t7z -mx=9 LoggerClient-${{env.TODAY}}.7z LoggerClient-${{env.TODAY}}
+ 
+    - name: Upload release
+      uses: actions/upload-artifact@v4.6.2
+      with:
+        name: LoggerClient-${{env.TODAY}}.7z
+        path: ${{github.workspace}}
