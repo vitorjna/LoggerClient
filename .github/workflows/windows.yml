@@ -32,12 +32,12 @@ jobs:
         install-deps: 'false'
         cache: 'true'
 
-    - name: Build Project
-      uses: threeal/cmake-action@v2.1.0
-
     - name: Checkout Project
       uses: actions/checkout@v4.2.2
       
+    # - name: Build Project
+    #   uses: threeal/cmake-action@v2.1.0
+    
     - name: Configure CMake
       run: cd ${{github.workspace}}/src && cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}/lib/cmake/" -G "Ninja" -B '${{github.workspace}}'/build
 
