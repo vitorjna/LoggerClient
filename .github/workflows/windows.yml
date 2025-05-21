@@ -41,12 +41,13 @@ jobs:
     - name: Configure CMake
       env:
         CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
-        CMAKE_C_COMPILER: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
-        CMAKE_CXX_COMPILER: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
+        CC: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
+        CXX: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
         Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
-      run: | 
+      run: |
+        echo $PATH
         cd ${{github.workspace}}/src
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_COMPILER=${{env.CMAKE_CXX_COMPILER}} -DCMAKE_C_COMPILER=${{env.CMAKE_C_COMPILER}} -G "Ninja" -B '${{github.workspace}}/build'
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja" -B '${{github.workspace}}/build'
       
     - name: Build
       run: cmake --build '${{github.workspace}}'/build --target RePr
