@@ -52,4 +52,4 @@ jobs:
       run: cmake -S ${{github.workspace}}/src -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}" -G "Ninja" -B '${{github.workspace}}/build'
       
     - name: Build
-      run: cmake --build '${{github.workspace}}'/build --target LoggerClient
+      run: cmake --build '${{github.workspace}}/build' --target LoggerClient
