@@ -21,18 +21,18 @@ jobs:
     - name: Deploy
       run: |
            echo "TODAY=$(date + '%Y%m%d')" >> $GITHUB_ENV
-           mkdir LoggerClient-${{TODAY}}
-           move ${{github.workspace}}/build/LoggerClient.exe LoggerClient-${{TODAY}}
-           windeployqt LoggerClient-${{TODAY}}/LoggerClient.exe -qmldir="${{env.QML_DIR_WIN}}" --compiler-runtime
-           xcopy resources\themes LoggerClient-${{TODAY}}\themes    
+           mkdir LoggerClient-${{env.TODAY}}
+           move ${{github.workspace}}/build/LoggerClient.exe LoggerClient-${{env.TODAY}}
+           windeployqt LoggerClient-${{env.TODAY}}/LoggerClient.exe -qmldir="${{env.QML_DIR_WIN}}" --compiler-runtime
+           xcopy resources\themes LoggerClient-${{env.TODAY}}\themes    
 
     - name: Compress release
       uses: edgarrc/action-7z@v1.0.5
       with:
-        args: 7z a -t7z -mx=9 LoggerClient-${{TODAY}}.7z LoggerClient-${{TODAY}}
+        args: 7z a -t7z -mx=9 LoggerClient-${{env.TODAY}}.7z LoggerClient-${{env.TODAY}}
  
     - name: Upload release
       uses: actions/upload-artifact@v4.6.2
       with:
-        name: LoggerClient-${{TODAY}}.7z
+        name: LoggerClient-${{env.TODAY}}.7z
         path: ${{github.workspace}}
