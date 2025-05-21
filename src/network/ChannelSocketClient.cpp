@@ -21,7 +21,7 @@ ChannelSocketClient::~ChannelSocketClient()
 {
     bKeepRetrying = false;
 
-    disconnectSocket();
+    Q_EMIT disconnectSocket();
 
     MemoryUtils::deletePointer(mySocket);
 
@@ -42,7 +42,7 @@ bool ChannelSocketClient::connect(const QString &szIpAddress, const QString &szP
         this->szIpAddress = NetworkUtils::cleanupIpV4Address(szIpAddress);
         this->nPort = szPort.toUShort();
 
-        emit connectSocket(this->szIpAddress, this->nPort);
+        Q_EMIT connectSocket(this->szIpAddress, this->nPort);
         return true;
     }
 
@@ -58,7 +58,7 @@ void ChannelSocketClient::disconnectAndStopRetries()
     bKeepRetrying = false;
     clearIpAndPort(true);
 
-    emit disconnectSocket();
+    Q_EMIT disconnectSocket();
 }
 
 void ChannelSocketClient::clearIpAndPort(bool bForce)
@@ -73,27 +73,27 @@ void ChannelSocketClient::clearIpAndPort(bool bForce)
 
 void ChannelSocketClient::setupSignalsAndSlots()
 {
-    QObject::connect(mySocket,      SIGNAL(stateChanged(QAbstractSocket::SocketState)),
-                     this,          SLOT(socketStateChanged(QAbstractSocket::SocketState)));
+    QObject::connect(mySocket,      &QAbstractSocket::stateChanged,
+                     this,          &ChannelSocketClient::socketStateChanged);
 
-    QObject::connect(mySocket,      SIGNAL(error(QAbstractSocket::SocketError)),
-                     this,          SLOT(socketError(QAbstractSocket::SocketError)));
+    QObject::connect(mySocket,      &QAbstractSocket::errorOccurred,
+                     this,          &ChannelSocketClient::socketError);
 
-    QObject::connect(mySocket,      SIGNAL(newMessage(QString)),
-                     this,          SLOT(newMessageOnSocket(QString)));
+    QObject::connect(mySocket,      &TcpSocketThreadable::newMessage,
+                     this,          &ChannelSocketClient::newMessageOnSocket);
 
-    QObject::connect(this,          SIGNAL(connectSocket(QString, quint16)),
-                     mySocket,      SLOT(connectSocket(QString, quint16)));
+    QObject::connect(this,          &ChannelSocketClient::connectSocket,
+                     mySocket,      &TcpSocketThreadable::connectSocket);
 
-    QObject::connect(this,          SIGNAL(disconnectSocket()),
-                     mySocket,      SLOT(disconnectSocket()));
+    QObject::connect(this,          &ChannelSocketClient::disconnectSocket,
+                     mySocket,      &TcpSocketThreadable::disconnectSocket);
 
 }
 
 void ChannelSocketClient::reconnectSocket()
 {
     if (bKeepRetrying == true) {
-        emit connectSocket(this->szIpAddress, this->nPort);
+        Q_EMIT connectSocket(this->szIpAddress, this->nPort);
     }
 }
 
@@ -104,7 +104,7 @@ void ChannelSocketClient::newMessageOnSocket(const QString &szMessage)
         return;
     }
 
-    emit newMessageReceived(szMessage);
+    Q_EMIT newMessageReceived(szMessage);
 }
 
 void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocketState)
@@ -112,14 +112,14 @@ void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocke
     if (nPort == 0) {
         //socket was trying to connect when a disconnect was requested
         if (eSocketState == QAbstractSocket::ConnectedState) {
-            emit disconnectSocket();
+            Q_EMIT disconnectSocket();
         }
 
         return;
     }
 
 #ifdef DEBUG_STUFF
-    QMetaEnum myMetaEnum = QMetaEnum::fromType<QAbstractSocket::SocketState>();
+    const QMetaEnum myMetaEnum = QMetaEnum::fromType<QAbstractSocket::SocketState>();
     qDebug() << "socketStateChanged" << myMetaEnum.valueToKey(eSocketState);
 #endif
 
@@ -132,11 +132,11 @@ void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocke
             break;
 
         case QAbstractSocket::ConnectingState:
-            emit connectionInProgress();
+            Q_EMIT connectionInProgress();
             break;
 
         case QAbstractSocket::ConnectedState:
-            emit connectionSuccess();
+            Q_EMIT connectionSuccess();
             break;
 
         case QAbstractSocket::BoundState:
@@ -157,7 +157,7 @@ void ChannelSocketClient::socketError(QAbstractSocket::SocketError eSocketError)
         return;
     }
 
-    emit connectionError(mySocket->error(), mySocket->errorString());
+    Q_EMIT connectionError(mySocket->error(), mySocket->errorString());
 
     switch (eSocketError) {
         case QAbstractSocket::ConnectionRefusedError:

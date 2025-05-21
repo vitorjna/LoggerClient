@@ -49,16 +49,16 @@ private:
     void loadSettings();
     void saveSettings();
 
-    QLineEdit               *lineEditServerName;
-    QLineEdit               *lineEditServerIpV4;
-    QLineEdit               *lineEditServerPort;
+    QLineEdit               *lineEditServerName{};
+    QLineEdit               *lineEditServerIpV4{};
+    QLineEdit               *lineEditServerPort{};
 
-    QPushButton             *pushButtonSaveAddress;
+    QPushButton             *pushButtonSaveAddress{};
 
-    NetworkAddressesModel   *tableModelAddresses;
-    StandardItemView        *tableViewAddresses;
+    NetworkAddressesModel   *tableModelAddresses{};
+    StandardItemView        *tableViewAddresses{};
 
-signals:
+Q_SIGNALS:
     void aboutToHide();
 
     void connectionRequested(const QString &szAddressName);

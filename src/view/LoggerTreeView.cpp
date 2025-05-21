@@ -77,7 +77,7 @@ QString LoggerTreeView::toString(int nTop, int nBottom, int nLeft, int nRight)
     return szText;
 }
 
-int LoggerTreeView::getColumnMaxCharCount(const int nCol, const int nRowTop, int nRowBottom, bool bFixOutliers)
+int LoggerTreeView::getColumnMaxCharCount(int nCol, int nRowTop, int nRowBottom, bool bFixOutliers)
 {
     if (nRowBottom == -1) {
         nRowBottom = model()->rowCount() - 1;
@@ -107,7 +107,7 @@ int LoggerTreeView::getColumnMaxCharCount(const int nCol, const int nRowTop, int
         }
     }
 
-    return nMaxSize * LoggerTableProxyModel::getColumnWidthBias((LoggerEnum::Columns)nCol);
+    return static_cast<int>(nMaxSize * LoggerTableProxyModel::getColumnWidthBias(static_cast<LoggerEnum::Columns>(nCol)));
 }
 
 void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)

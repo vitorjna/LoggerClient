@@ -11,7 +11,7 @@ public:
     explicit LineEditWidget(QWidget *parent = nullptr);
     ~LineEditWidget() override;
 
-signals:
+Q_SIGNALS:
     void focusReceived();
 
     //reimplemented

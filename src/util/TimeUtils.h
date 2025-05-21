@@ -14,9 +14,16 @@ public:
 
     static void printTimeMilliseconds(bool bResetTimer = false);
 
+    static void saveTime();
+
+    static void resetSavedTime();
+
+    static int64_t getSavedTimeMilliseconds();
+    static int64_t getSavedTimeMicroseconds();
+
 private:
     static QElapsedTimer *myTimer;
 
+    static int64_t llTimeCount;
+
 };
-
-

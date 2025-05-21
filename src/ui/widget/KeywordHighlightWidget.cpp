@@ -29,7 +29,7 @@ void KeywordHighlightWidget::clear()
 
 QStringList KeywordHighlightWidget::getKeywords() const
 {
-    QStringList szaKeywords = lineEditKeywords->text().split(GlobalConstants::SEPARATOR_SETTINGS_LIST_WORDS);
+    const QStringList szaKeywords = lineEditKeywords->text().split(GlobalConstants::SEPARATOR_SETTINGS_LIST_WORDS);
     QStringList szaKeywordsClean;
 
     for (const QString &szKeyword : szaKeywords) {
@@ -52,7 +52,7 @@ void KeywordHighlightWidget::setupUi()
 
         lineEditKeywords = new QLineEdit(this);
         lineEditKeywords->setPlaceholderText(tr("Keywords to highlight. Comma separated, case-sensitive"));
-        lineEditKeywords->setToolTip(tr("Ctrl+K to select"));
+        lineEditKeywords->setToolTip(tr("Ctrl+K"));
         lineEditKeywords->setClearButtonEnabled(true);
         labelKeywordsText->setBuddy(lineEditKeywords);
 
@@ -70,13 +70,14 @@ void KeywordHighlightWidget::setupSignalsAndSlots()
 void KeywordHighlightWidget::setupShortcuts()
 {
     QShortcut *shortcutHighlightText    = new QShortcut(QKeySequence(QStringLiteral("Ctrl+K")), this);
+
     connect(shortcutHighlightText,      &QShortcut::activated,
             this,                       &KeywordHighlightWidget::focusAndSelect);
 }
 
 void KeywordHighlightWidget::loadSettings()
 {
-    QStringList szaKeywords = AppSettings::getValue(AppSettings::KEY_KEYWORDS_HIGHLIGHT, AppSettings::getDefaultValue(AppSettings::KEY_KEYWORDS_HIGHLIGHT)).toStringList();
+    const QStringList szaKeywords = AppSettings::getValue(AppSettings::KEY_KEYWORDS_HIGHLIGHT, AppSettings::getDefaultValue(AppSettings::KEY_KEYWORDS_HIGHLIGHT)).toStringList();
 
     lineEditKeywords->setText(szaKeywords.join(GlobalConstants::SEPARATOR_SETTINGS_LIST_WORDS));
 }
@@ -92,11 +93,11 @@ void KeywordHighlightWidget::keywordsChanged(const QString &szKeywords)
 {
     Q_UNUSED(szKeywords)
 
-    QStringList szaKeywordsClean = getKeywords();
+    const QStringList szaKeywordsClean = getKeywords();
 
     AppSettings::setValue(AppSettings::KEY_KEYWORDS_HIGHLIGHT, szaKeywordsClean);
 
-    emit keywordsChangedSignal(szaKeywordsClean);
+    Q_EMIT keywordsChangedSignal(szaKeywordsClean);
 }
 
 void KeywordHighlightWidget::focusInEvent(QFocusEvent *event)

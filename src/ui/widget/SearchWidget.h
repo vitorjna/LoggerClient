@@ -7,6 +7,7 @@
 #include <QLineEdit>
 #include <QObject>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QShortcut>
 #include <QStyle>
 
@@ -25,6 +26,8 @@ public:
     void clear();
 
 private:
+    static const QRegularExpression myRegexCheck;
+
     void setupUi();
     void setupSignalsAndSlots();
     void setupShortcuts();
@@ -35,10 +38,10 @@ private:
     QPushButton     *pushButtonPreviousResult{};
     QPushButton     *pushButtonNextResult{};
 
-signals:
-    void searchTextChanged(QString);
+Q_SIGNALS:
+    void searchTextChanged(const QString &szSearchText, QRegularExpression::PatternOptions eOptions);
 
-public slots:
+public Q_SLOTS:
     void previousResult();
     void nextResult();
 

@@ -1,5 +1,7 @@
 #include "SearchWidget.h"
 
+const QRegularExpression SearchWidget::myRegexCheck = QRegularExpression(R"(\[|\(|\\|\{)", QRegularExpression::CaseInsensitiveOption);
+
 SearchWidget::SearchWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -20,7 +22,18 @@ bool SearchWidget::isEmpty() const
 
 void SearchWidget::triggerSearchTextChanged()
 {
-    emit searchTextChanged(lineEditSearchText->text());
+    QString szText = lineEditSearchText->text();
+
+    if (szText.contains(myRegexCheck)
+        && QRegularExpression(szText).isValid()) {
+
+        // qDebug() << "Searching with Regex";
+
+        Q_EMIT searchTextChanged(szText, QRegularExpression::NoPatternOption);
+
+    } else {
+        Q_EMIT searchTextChanged(szText, QRegularExpression::CaseInsensitiveOption);
+    }
 }
 
 void SearchWidget::clear()
@@ -35,10 +48,11 @@ void SearchWidget::setupUi()
     {
         labelSearchText = new QLabel(this);
         labelSearchText->setText(tr("Search:"));
+        labelSearchText->setToolTip(tr("Plain text: case-insensitive\nRegex: case-sensitive"));
 
         lineEditSearchText = new QLineEdit(this);
-        lineEditSearchText->setPlaceholderText(tr("Text to search. Case-insensitive"));
-        lineEditSearchText->setToolTip(tr("Ctrl+F to select"));
+        lineEditSearchText->setPlaceholderText(tr("Search: Plain text: case-insensitive. Regex: case-sensitive"));
+        lineEditSearchText->setToolTip(tr("Ctrl+F"));
         lineEditSearchText->setClearButtonEnabled(true);
         labelSearchText->setBuddy(lineEditSearchText);
 
@@ -65,7 +79,7 @@ void SearchWidget::setupUi()
 void SearchWidget::setupSignalsAndSlots()
 {
     connect(lineEditSearchText,         &QLineEdit::textChanged,
-            this,                       &SearchWidget::searchTextChanged);
+            this,                       &SearchWidget::triggerSearchTextChanged);
 
     connect(lineEditSearchText,         &QLineEdit::returnPressed,
             pushButtonNextResult,       &QPushButton::click);

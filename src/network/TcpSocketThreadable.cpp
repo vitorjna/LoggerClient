@@ -3,7 +3,7 @@
 
 TcpSocketThreadable::TcpSocketThreadable(QObject *parent)
     : QTcpSocket(nullptr) //parent removed, to allow moveToThread
-    , IntMutexable(QMutex::NonRecursive)
+    , IntMutexable()
     , nTimeout(3000)
 {
     Q_UNUSED(parent)
@@ -25,7 +25,7 @@ void TcpSocketThreadable::connectSocket(const QString &szIpAddress, const quint1
         return;
     }
 
-    QMutexLocker myScopedMutex(myMutex);
+    QMutexLocker<QMutex> myScopedMutex(myMutex);
 
     switch (this->state()) {
         case QAbstractSocket::HostLookupState:
@@ -58,7 +58,7 @@ void TcpSocketThreadable::readNewMessage()
 
     if (caData.size() == 0) {
         //a reading error occurred. Ignore message
-        emit error(QAbstractSocket::UnknownSocketError);
+        Q_EMIT errorOccurred(QAbstractSocket::UnknownSocketError);
 
     } else {
 #ifdef DEBUG_STUFF
@@ -69,7 +69,7 @@ void TcpSocketThreadable::readNewMessage()
 #endif
 
         const QString szMessage = QString::fromLatin1(caData);
-        emit newMessage(szMessage);
+        Q_EMIT newMessage(szMessage);
     }
 }
 

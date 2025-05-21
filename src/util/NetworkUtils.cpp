@@ -17,13 +17,13 @@ QString NetworkUtils::cleanupIpV4Address(const QString &szIpAddress)
 
         } else if (bCanIgnore == true
                    && cChar == '0') {
+
             continue;
 
         } else {
             bCanIgnore = false;
             szIpAddressClean.push_back(cChar);
         }
-
     }
 
     if (NetworkUtils::isIpV4Address(szIpAddressClean) == true) {
@@ -40,7 +40,7 @@ bool NetworkUtils::isIpV4Address(const QString &szIpAddress)
         return true;
     }
 
-    QHostAddress myIpAddress(szIpAddress);
+    const QHostAddress myIpAddress(szIpAddress);
 
     return (myIpAddress.isNull() == false); //if null is false, the IP is valid
 }

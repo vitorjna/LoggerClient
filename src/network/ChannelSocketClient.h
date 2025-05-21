@@ -35,16 +35,16 @@ private:
 
     TcpSocketThreadable     *mySocket;
 
-private slots:
+private Q_SLOTS:
     void reconnectSocket();
     void newMessageOnSocket(const QString &szMessage);
 
     void socketStateChanged(QAbstractSocket::SocketState eSocketState);
     void socketError(QAbstractSocket::SocketError eSocketError);
 
-signals:
+Q_SIGNALS:
     void connectionInProgress();
-    void connectionSuccess(const QString &szInfo = QLatin1String(""));
+    void connectionSuccess(const QString &szInfo = QString());
     void connectionError(int nSocketError, const QString &szError);
     void newMessageReceived(const QString &szMessage);
 

@@ -29,13 +29,13 @@ private:
     QLabel      *labelKeywordsText{};
     QLineEdit   *lineEditKeywords{};
 
-signals:
+Q_SIGNALS:
     void keywordsChangedSignal(QStringList);
 
-public slots:
+public Q_SLOTS:
     void focusAndSelect();
 
-private slots:
+private Q_SLOTS:
     void keywordsChanged(const QString &szKeywords);
 
 //reimplemented

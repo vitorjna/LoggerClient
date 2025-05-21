@@ -15,15 +15,15 @@ public:
 private:
     int nTimeout;
 
-public slots:
+public Q_SLOTS:
     void connectSocket(const QString &szIpAddress, const quint16 nPort);
 
     void disconnectSocket();
 
-private slots:
+private Q_SLOTS:
     void readNewMessage();
 
-signals:
+Q_SIGNALS:
     void newMessage(const QString &szMessage);
 
 };

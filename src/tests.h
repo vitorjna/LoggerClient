@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <unistd.h>
 
 #include <QAbstractSocket>
 #include <QApplication>

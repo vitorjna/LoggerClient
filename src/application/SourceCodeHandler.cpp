@@ -28,8 +28,8 @@ void SourceCodeHandler::setCurrentLanguage(const QString &szCurrentLanguage)
 
 QString SourceCodeHandler::getCurrentLanguageFileExtension()
 {
-    QString szCurrentLanguage = getCurrentLanguage();
-    int nCurrentLanguage = getSupportedLanguages().indexOf(szCurrentLanguage);
+    const QString szCurrentLanguage = getCurrentLanguage();
+    const qsizetype nCurrentLanguage = getSupportedLanguages().indexOf(szCurrentLanguage);
 
     if (nCurrentLanguage != -1) { //could use "default", but want to keep non-enum elements out of the switch
 
@@ -41,17 +41,17 @@ QString SourceCodeHandler::getCurrentLanguageFileExtension()
                 return GlobalConstants::FILE_EXTENSION_JAVA;
 
             case SourceCodeHandler::COUNT_SOURCE_CODE_LANGUAGES:
-                return QLatin1String("");
+                return QString();
         }
 
     } else {
-        return QLatin1String("");
+        return QString();
     }
 }
 
 QStringList SourceCodeHandler::getSourceCodeLocations()
 {
-    QString szSourceLocations = AppSettings::getValue(AppSettings::KEY_CODE_SOURCE_LOCATION).toString();
+    const QString szSourceLocations = AppSettings::getValue(AppSettings::KEY_CODE_SOURCE_LOCATION).toString();
 
     QStringList szaSourceFolders;
 
@@ -81,13 +81,13 @@ QString SourceCodeHandler::getEditorName(const SourceCodeHandler::SourceCodeEdit
 
 QString SourceCodeHandler::getEditorLocation(const SourceCodeHandler::SourceCodeEditors eEditor)
 {
-    QString szEditorLocations = AppSettings::getValue(AppSettings::KEY_CODE_EDITOR_LOCATION).toString();
+    const QString szEditorLocations = AppSettings::getValue(AppSettings::KEY_CODE_EDITOR_LOCATION).toString();
 
     if (szEditorLocations.isEmpty() == false) {
-        QStringList szaEditorLocations = szEditorLocations.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
+        const QList<QStringView> szaEditorLocations = QStringView(szEditorLocations).split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
         if (szaEditorLocations.size() == COUNT_SOURCE_CODE_EDITORS) {
-            return szaEditorLocations.at(eEditor);
+            return szaEditorLocations.at(eEditor).toString();
         }
     }
 
@@ -96,7 +96,7 @@ QString SourceCodeHandler::getEditorLocation(const SourceCodeHandler::SourceCode
 
 void SourceCodeHandler::setEditorLocation(const SourceCodeHandler::SourceCodeEditors eEditor, const QString &szEditorLocation)
 {
-    QString szEditorLocations = AppSettings::getValue(AppSettings::KEY_CODE_EDITOR_LOCATION).toString();
+    const QString szEditorLocations = AppSettings::getValue(AppSettings::KEY_CODE_EDITOR_LOCATION).toString();
 
     QStringList szaEditorLocations = szEditorLocations.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
@@ -144,34 +144,32 @@ void SourceCodeHandler::setCurrentProjectName(const QString &szCurrentProjectNam
     AppSettings::setValue(AppSettings::KEY_CODE_SOURCE_PROJECT, szCurrentProjectName);
 }
 
-QString SourceCodeHandler::getEditorHandling(const SourceCodeHandler::SourceCodeEditors eEditor)
+QStringList SourceCodeHandler::getEditorArguments(const SourceCodeHandler::SourceCodeEditors eEditor)
 {
     switch (eEditor) {
         case SourceCodeHandler::QtCreator:
-            return QStringLiteral("-client ") + szArgumentSourceFileName + ':' + szArgumentSourceFileLine;
+            return QStringList({"-client", szArgumentSourceFileName + ':' + szArgumentSourceFileLine});
 
         case SourceCodeHandler::Eclipse:
-            return QStringLiteral("--launcher.openFile ") + szArgumentSourceFileName + ':' + szArgumentSourceFileLine;
+            return QStringList({"--launcher.openFile", szArgumentSourceFileName + ':' + szArgumentSourceFileLine});
 
         case SourceCodeHandler::IngeDev:
-            return QStringLiteral("--launcher.openFile ") + szArgumentSourceFileName + ':' + szArgumentSourceFileLine;
+            return QStringList({"--launcher.openFile", szArgumentSourceFileName + ':' + szArgumentSourceFileLine});
 
         case SourceCodeHandler::COUNT_SOURCE_CODE_EDITORS:
-            return QLatin1String("");
+            return QStringList();
     }
 }
 
 GlobalConstants::ErrorCode SourceCodeHandler::openFileInEditor(const SourceCodeHandler::SourceCodeEditors eEditor, const QString &szFilenameFullPath, const QString &szLine)
 {
-    QString szHandling = getEditorHandling(eEditor);
-    szHandling.replace(szArgumentSourceFileName, szFilenameFullPath);
-    szHandling.replace(szArgumentSourceFileLine, szLine);
+    QStringList szaArgs = getEditorArguments(eEditor);
+    szaArgs = szaArgs.replaceInStrings(szArgumentSourceFileName, szFilenameFullPath);
+    szaArgs = szaArgs.replaceInStrings(szArgumentSourceFileLine, szLine);
 
-    QString szCall = getEditorLocation(eEditor);
-    szCall.append(' ');
-    szCall.append(szHandling);
+    const QString szProcess = getEditorLocation(eEditor);
 
-    int nResult = QProcess::execute(szCall);
+    int nResult = QProcess::execute(szProcess, szaArgs);
 
     if (nResult < 0) {
         return GlobalConstants::ERROR;
@@ -238,12 +236,12 @@ QString SourceCodeHandler::getEditorLocationDefault(const SourceCodeHandler::Sou
             return QStringLiteral("C:\\Qt\\Tools\\QtCreator\\bin\\qtcreator.exe");
 
         case SourceCodeHandler::Eclipse:
-            return QLatin1String("");
+            return QString();
 
         case SourceCodeHandler::IngeDev:
-            return QLatin1String("");
+            return QString();
 
         case SourceCodeHandler::COUNT_SOURCE_CODE_EDITORS:
-            return QLatin1String("");
+            return QString();
     }
 }

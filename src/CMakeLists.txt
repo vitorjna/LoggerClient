@@ -9,7 +9,7 @@ message("#------------------------------- " ${ProjectName} " -------------------
 set(CMAKE_C_COMPILER_WORKS 1)
 set(CMAKE_CXX_COMPILER_WORKS 1)
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-cmake_minimum_required(VERSION 3.3)
+cmake_minimum_required(VERSION 3.25)
 
 set(TARGET_WINDOWS 0)
 set(TARGET_LINUX 0)
@@ -58,7 +58,7 @@ endif(CCACHE_FOUND)
 #endif()
 #set(OPENSSL_USE_STATIC_LIBS ON)
 
-find_package(Qt5 COMPONENTS Widgets Network REQUIRED)
+find_package(Qt6 COMPONENTS Widgets Network REQUIRED)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
@@ -119,28 +119,19 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${TARGET_INCLUDES})
 # ---------------------------------- COMPILATION --------------------------------- #
 # -------------------------------------------------------------------------------- #
 
-set(CXX_FLAGS_COMMON "${CMAKE_CXX_FLAGS} -fno-operator-names -fmessage-length=0 -std=c++14 -pedantic -DBOOST_NO_LONG_LONG -U_GLIBCXX_HAVE_ISWBLANK")
-
-if (TARGET_WINDOWS OR TARGET_LINUX OR TARGET_OSX)
-    set(CXX_FLAGS_COMMON "${CXX_FLAGS_COMMON}")
-
-endif()
+set(CMAKE_CXX_STANDARD 17)
+ADD_DEFINITIONS(-DQT_NO_KEYWORDS)
 
 message("CMAKE_BUILD_TYPE = ${CMAKE_BUILD_TYPE}")
 if( CMAKE_BUILD_TYPE STREQUAL "Release" )
-    set (CMAKE_CXX_FLAGS "${CXX_FLAGS_COMMON} -O3 -w")
 #    add_definitions(-DQT_NO_DEBUG_OUTPUT)
 
 elseif( CMAKE_BUILD_TYPE STREQUAL "Debug" )
-    set (CMAKE_CXX_FLAGS "${CXX_FLAGS_COMMON} -O0 -g2 -w")
     add_definitions(-DDEBUG_STUFF)
 
 else()
     set (CMAKE_CXX_FLAGS "${CXX_FLAGS_COMMON} -O2")
-
 endif( CMAKE_BUILD_TYPE STREQUAL "Release" )
-
-message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 
 
 
@@ -149,8 +140,8 @@ message("CMAKE_CXX_FLAGS: ${CMAKE_CXX_FLAGS}")
 # -------------------------------------------------------------------------------- #
 
 set(TARGET_LIBRARIES
-    Qt5::Widgets
-    Qt5::Network
+    Qt6::Widgets
+    Qt6::Network
     )
 
 if(TARGET_WINDOWS)
@@ -191,7 +182,6 @@ if(TARGET_WINDOWS OR TARGET_LINUX)
 endif()
 
 #   -Wl,-L\"${path_to_lib}/lib\" \
-#    -Wl,-s \
 #        -Wl,--as-needed \
 #        -Wl,--print-gc-sections \
 #        -nodefaultlibs \

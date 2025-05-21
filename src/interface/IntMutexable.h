@@ -12,16 +12,16 @@
 class IntMutexable
 {
 public:
-    explicit IntMutexable(const QMutex::RecursionMode eRecursionMode = QMutex::NonRecursive)
-        : myMutex(new QMutex(eRecursionMode)) {
+    explicit IntMutexable()
+        : myMutex(new QMutex()) {
     }
 
     ~IntMutexable() {
         MemoryUtils::deleteMutex(myMutex);
     }
 
+protected:
     /// usage: QMutexLocker myScopedMutex(myMutex);
     QMutex *myMutex;
 
 };
-

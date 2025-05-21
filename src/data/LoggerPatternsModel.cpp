@@ -19,7 +19,7 @@ QString LoggerPatternsModel::getColumnName(const LoggerPatternsEnum::Columns eCo
             return tr("Pattern");
 
         case LoggerPatternsEnum::COUNT_TABLE_COLUMNS:
-            return QLatin1String("");
+            return QString();
     }
 }
 
@@ -38,15 +38,16 @@ void LoggerPatternsModel::setupHeader()
 QVariant LoggerPatternsModel::data(const QModelIndex &index, int role) const
 {
     switch (role) {
-        case Qt::TextAlignmentRole:
+        case Qt::TextAlignmentRole: {
 //            if (index.column() == LoggerPatternsEnum::COLUMN_PATTERN) {
 //                static const QVariant myAlignTopCenter(Qt::AlignVCenter | Qt::AlignHCenter);
 //                return myAlignTopCenter;
 
 //            } else {
-                static const QVariant myAlignTopLeft(Qt::AlignVCenter | Qt::AlignLeft);
-                return myAlignTopLeft;
+            static const QVariant myAlignTopLeft(Qt::AlignVCenter | Qt::AlignLeft);
+            return myAlignTopLeft;
 //            }
+        }
 
         default:
             return StandardItemModel::data(index, role);

@@ -9,7 +9,7 @@ LineEditWidget::~LineEditWidget() = default;
 
 void LineEditWidget::focusInEvent(QFocusEvent *event)
 {
-    emit focusReceived();
+    Q_EMIT focusReceived();
 
     QLineEdit::focusInEvent(event);
 }

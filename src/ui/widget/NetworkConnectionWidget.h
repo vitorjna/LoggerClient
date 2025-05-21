@@ -69,7 +69,7 @@ private:
 
     NetworkAddressesManagerWidget   *myNetworkAddressesManagerWidget{};
 
-protected slots:
+protected Q_SLOTS:
     void lineEditReturnPressed();
     void buttonManageAddressesToggled(bool bButtonState);
     void buttonConnectToServerToggled(bool bButtonState);
@@ -80,7 +80,7 @@ protected slots:
 
     void connectionRequested(const QString &szAddressName);
 
-signals:
+Q_SIGNALS:
     void signalButtonConnectToServerToggled(bool);
 
     //reimplemented

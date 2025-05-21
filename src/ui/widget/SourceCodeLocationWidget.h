@@ -57,7 +57,7 @@ private:
     SourceCodeLocationsModel    *tableModelLocations;
     StandardItemView            *tableViewLocations;
 
-signals:
+Q_SIGNALS:
     void aboutToHide();
 
     void newProjectAdded(const QString &szProjectName);

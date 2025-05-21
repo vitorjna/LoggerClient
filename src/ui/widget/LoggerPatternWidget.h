@@ -46,14 +46,14 @@ private:
 
     LoggerPatternManagerWidget      *myLoggerPatternManagerWidget{};
 
-protected slots:
+protected Q_SLOTS:
     void loggerPatternNameChanged(const QString &szPatternName);
     void loggerPatternChanged(const QString &szPattern);
     void buttonManagePatternsToggled(bool bButtonState);
 
     void patternChangeRequested(const QString &szPattern);
 
-signals:
+Q_SIGNALS:
     void loggerPatternChangedSignal(QString);
 
     //reimplemented

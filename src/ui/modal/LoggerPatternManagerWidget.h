@@ -47,15 +47,15 @@ private:
     void loadSettings();
     void saveSettings();
 
-    QLineEdit               *lineEditPatternName;
-    QLineEdit               *lineEditPattern;
+    QLineEdit               *lineEditPatternName{};
+    QLineEdit               *lineEditPattern{};
 
-    QPushButton             *pushButtonSavePattern;
+    QPushButton             *pushButtonSavePattern{};
 
-    LoggerPatternsModel     *tableModelPatterns;
-    StandardItemView        *tableViewPatterns;
+    LoggerPatternsModel     *tableModelPatterns{};
+    StandardItemView        *tableViewPatterns{};
 
-signals:
+Q_SIGNALS:
     void aboutToHide();
 
     void patternChangeRequested(const QString &szPatternName);

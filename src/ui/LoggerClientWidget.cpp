@@ -1,6 +1,7 @@
 #include "LoggerClientWidget.h"
 #include "application/AppSettings.h"
 #include "data/LoggerTableProxyModel.h"
+#include "data/LoggerTableItemModel.h"
 #include "network/ChannelSocketClient.h"
 #include "ui/ToastNotificationWidget.h"
 #include "ui/element/PushButtonWithMenu.h"
@@ -21,19 +22,22 @@
 //TODO open multiple editor context menu
 //TODO right click on selected cells, copy only that column contents. Good to export XML from multiple lines
 //TODO right click with multiple lines selected: generate "filter by" action for all classes
-//TODO after removing filter OR search text, keep selected index in view (by default it scrolls to the bottom)
 //TODO add default name for log file saving as text
 //TODO add TipWidget (NAM: you can copy and paste from the table. Paste in the format...). Auto hides itself by a checkbox in the OptionsWidget
 //TODO add button to reset patterns to default values
-//TODO add undo with timeout to clear table button
+
+const int LoggerClientWidget::CLEAR_UNDO_TIMEOUT_MS;
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
-    , IntMutexable(QMutex::NonRecursive)
+    , IntMutexable()
     , bUsingCustomColumnWidth(false)
     , eCurrentMode(COUNT_LOG_MODE)
     , bOpenFileAfterSavingPending(false)
     , bIsAtBottom(true)
+    , mySavedModelIndex()
+    , myTimerUndoClear(new QTimer(this))
+    , bIsClearPending(false)
     , myOptionsWidget(new OptionsWidget(this)) //loads current settings on construction. Should load when calling method, but it's good enough for now
 {
 #ifdef DEBUG_STUFF
@@ -44,8 +48,10 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
 
     myChannelSocketClient = new ChannelSocketClient();
 
+    myTimerUndoClear->setSingleShot(true);
+
     setupUI();
-    setStyleSheet(QLatin1String(""));
+    setStyleSheet(QString());
     setupSignalsAndSlots();
     setupShortcuts();
     loadSettings();
@@ -57,8 +63,12 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
 
 LoggerClientWidget::~LoggerClientWidget()
 {
+    if (myTimerUndoClear->isActive()) {
+        myTimerUndoClear->stop();
+        finalizeClearTable();
+    }
+
     MemoryUtils::deletePointer(myProxyModel);
-    MemoryUtils::deleteMutex(myMutex);
 
     myWorkerThread.quit();
     myWorkerThread.wait(200);
@@ -71,9 +81,8 @@ void LoggerClientWidget::setStyleSheet(const QString &szStyleSheet)
 
 void LoggerClientWidget::saveWindowPosition()
 {
-    QPoint myPos = this->pos();
-
-    QSize mySize = this->size();
+    const QPoint myPos = this->pos();
+    const QSize mySize = this->size();
 
     AppSettings::setValue(AppSettings::KEY_WINDOW_POS_MAIN,
                           QString::number(myPos.x())
@@ -218,7 +227,6 @@ void LoggerClientWidget::setupUI()
             myFiltersLayout->addWidget(myKeywordHighlightWidget);
         }
         myMainLayout->addLayout(myFiltersLayout);
-
     }
 
 //    myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Expanding), myMainLayout->rowCount(), 0);
@@ -316,7 +324,7 @@ void LoggerClientWidget::setupSignalsAndSlots()
             myOptionsWidget,            &OptionsWidget::setVisible);
 
     connect(myOptionsWidget,            &OptionsWidget::aboutToHide,
-            pushButtonOptions,          [ = ] { pushButtonOptions->setChecked(false); pushButtonOptions->clearFocus(); });
+            pushButtonOptions,          [ this ] { pushButtonOptions->setChecked(false); pushButtonOptions->clearFocus(); });
 
     connect(myOptionsWidget,            &OptionsWidget::fontSizeChanged,
             this,                       &LoggerClientWidget::fontSizeChanged);
@@ -345,37 +353,37 @@ void LoggerClientWidget::setupShortcuts()
 
     QShortcut *shortcutFontUp           = new QShortcut(QKeySequence(QStringLiteral("Ctrl++")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutFontUp,             &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(1);});
 
     QShortcut *shortcutFontDown         = new QShortcut(QKeySequence(QStringLiteral("Ctrl+-")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutFontDown,           &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(-1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(-1);});
 
     QShortcut *shortcutFontReset        = new QShortcut(QKeySequence(QStringLiteral("Ctrl+0")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutFontReset,           &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(0);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->fontSizeChange(0);});
 
     QShortcut *shortcutRowHeightUp      = new QShortcut(QKeySequence(QStringLiteral("Alt++")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutRowHeightUp,        &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(1);});
 
     QShortcut *shortcutRowHeightDown    = new QShortcut(QKeySequence(QStringLiteral("Alt+-")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutRowHeightDown,      &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(-1);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(-1);});
 
     QShortcut *shortcutRowHeightReset   = new QShortcut(QKeySequence(QStringLiteral("Alt+0")), this, nullptr, nullptr, Qt::ApplicationShortcut);
     connect(shortcutRowHeightReset,      &QShortcut::activated,
-            this,                       [ = ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(0);});
+            this,                       [ this ] { qDebug() << "zooming"; myOptionsWidget->rowHeightBiasChange(0);});
 }
 
 void LoggerClientWidget::loadSettings()
 {
-    QString szDimensions = AppSettings::getValue(AppSettings::KEY_WINDOW_POS_MAIN, "0").toString();
-    QVector<QStringRef> szraDimensions = szDimensions.splitRef(GlobalConstants::SEPARATOR_SETTINGS_LIST);
+    const QString szDimensions = AppSettings::getValue(AppSettings::KEY_WINDOW_POS_MAIN, "0").toString();
+    const QList<QStringView> szraDimensions = QStringView(szDimensions).split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
     if (szraDimensions.size() == 4) {
-        QPoint myPos(szraDimensions.at(0).toInt(), szraDimensions.at(1).toInt());
-        QSize mySize(szraDimensions.at(2).toInt(), szraDimensions.at(3).toInt());
+        const QPoint myPos(szraDimensions.at(0).toInt(), szraDimensions.at(1).toInt());
+        const QSize mySize(szraDimensions.at(2).toInt(), szraDimensions.at(3).toInt());
 
         this->move(myPos);
         this->resize(mySize);
@@ -384,18 +392,18 @@ void LoggerClientWidget::loadSettings()
         this->resize(600, 800); //default
     }
 
-    QString szServerName = AppSettings::getValue(AppSettings::KEY_SERVER_NAME).toString();
+    const QString szServerName = AppSettings::getValue(AppSettings::KEY_SERVER_NAME).toString();
     myServerConnectionWidget->setName(szServerName);
 
-    QString szServerIpV4 = AppSettings::getValue(AppSettings::KEY_SERVER_IPv4).toString();
+    const QString szServerIpV4 = AppSettings::getValue(AppSettings::KEY_SERVER_IPv4).toString();
     myServerConnectionWidget->setIp(szServerIpV4);
 
-    QString szServerPort = AppSettings::getValue(AppSettings::KEY_SERVER_PORT).toString();
+    const QString szServerPort = AppSettings::getValue(AppSettings::KEY_SERVER_PORT).toString();
     myServerConnectionWidget->setPort(szServerPort);
 
     loggerPatternChanged(myLoggerPatternWidget->getPattern());
 
-    int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
+    const int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, 0).toInt();
     rowHeightBiasChanged(nRowBias);
 
     keywordHighlightChanged(myKeywordHighlightWidget->getKeywords());
@@ -403,6 +411,11 @@ void LoggerClientWidget::loadSettings()
 
 void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &szText, bool bForce)
 {
+    // If a clear is pending when the mode changes, finalize it immediately
+    if (bIsClearPending) {
+        finalizeClearTable();
+    }
+
     if (bForce == false
         && eCurrentMode == eMode) {
         return;
@@ -443,14 +456,14 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myServerConnectionWidget->setEnabled(false);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
 
-            myLoggerPatternWidget->setEnabled(false);
+            myLoggerPatternWidget->setEnabled(true);
 
             buttonOpenFile->setChecked(true);
             buttonOpenFile->setText("C&lose " + szText);
             break;
 
         case LoggerClientWidget::SERVER_CONNECTING: {
-            QString szInfoMessage = tr("Connecting to: ") + getClientInfoMessage();
+            const QString szInfoMessage = tr("Connecting to: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -464,7 +477,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
         }
 
         case LoggerClientWidget::SERVER_CONNECTED: {
-            QString szInfoMessage = tr("Connected to: ") + getClientInfoMessage();
+            const QString szInfoMessage = tr("Connected to: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -486,7 +499,7 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
         }
 
         case LoggerClientWidget::SERVER_RETRYING: {
-            QString szInfoMessage = tr("Disconnected. Retrying: ") + getClientInfoMessage();
+            const QString szInfoMessage = tr("Disconnected. Retrying: ") + getClientInfoMessage();
 
             this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + szInfoMessage);
 
@@ -528,6 +541,16 @@ void LoggerClientWidget::selectFocus()
 
 void LoggerClientWidget::updateButtonsRowCountDependent(LogMode eNewMode)
 {
+    updateClearButtonText();
+
+    // Handle pending clear state first
+    if (bIsClearPending) {
+        pushButtonResizeColumns->setEnabled(false); // Can't resize while pending
+        pushButtonSaveToFile->setEnabled(false);    // Can't save while pending
+        pushButtonClearTable->setEnabled(true);     // Keep Undo enabled
+        return; // Don't process further if pending
+    }
+
     if (myProxyModel->rowCount() == 0) {
         pushButtonResizeColumns->setEnabled(false);
         pushButtonSaveToFile->setEnabled(false);
@@ -544,30 +567,43 @@ void LoggerClientWidget::updateButtonsRowCountDependent(LogMode eNewMode)
         switch (eNewMode) {
             case LoggerClientWidget::EMPTY:
             case LoggerClientWidget::COUNT_LOG_MODE:
+                // Should not happen if rowCount > 0, but disable clear just in case
+                pushButtonClearTable->setEnabled(false);
                 break;
 
             case LoggerClientWidget::CLIPBOARD:
                 pushButtonClearTable->setEnabled(true); //on Clipboard, clear table is allowed
-                return;
+                break;
 
             case LoggerClientWidget::FILE:
                 pushButtonClearTable->setEnabled(false); //on File, to clear the table the file should be closed
-                return;
+                break;
 
             case LoggerClientWidget::SERVER_CONNECTING:
             case LoggerClientWidget::SERVER_CONNECTED:
             case LoggerClientWidget::SERVER_RETRYING:
-                if (eCurrentMode == LoggerClientWidget::CLIPBOARD
-                    || eCurrentMode == LoggerClientWidget::FILE) {
-
-                    emit clearModel();
-                }
-
                 pushButtonClearTable->setEnabled(true);
                 break;
         }
     }
+}
 
+void LoggerClientWidget::updateClearButtonText()
+{
+    if (bIsClearPending) {
+        int nSecondsLeft = myTimerUndoClear->remainingTime() / 1000;
+
+        QTimer::singleShot(1000, this, [this] {
+            updateClearButtonText();
+        });
+
+        if (nSecondsLeft > 0) {
+            pushButtonClearTable->setText(tr("&Undo Clear") + " (" + QString::number(nSecondsLeft) + ")");
+        }
+
+    } else {
+        pushButtonClearTable->setText(tr("Cl&ear table"));
+    }
 }
 
 void LoggerClientWidget::resizeColumnsIfNeeded(bool bIgnoreRowCount)
@@ -589,7 +625,7 @@ void LoggerClientWidget::saveTableToFile(const QString &szFilename)
     if (szFilename.isEmpty() == false) {
         szSavedLogFile = szFilename;
 
-        QString szFileOnlyName = QFileInfo(szSavedLogFile).fileName();
+        const QString szFileOnlyName = QFileInfo(szSavedLogFile).fileName();
 
         myActionsSaveToFile.at(SAVE)->setToolTip(tr("Save") + ' ' + szFileOnlyName);
         myActionsSaveToFile.at(SAVE_AND_OPEN)->setToolTip(tr("Save and open") + ' ' + szFileOnlyName);
@@ -634,11 +670,58 @@ QString LoggerClientWidget::getClientInfoMessage()
     }
 }
 
+void LoggerClientWidget::initiateClearTable()
+{
+    if (bIsClearPending
+        || myProxyModel->rowCount() == 0) {
+        return;
+    }
+
+    QStandardItemModel *sourceModel = qobject_cast<QStandardItemModel *>(myProxyModel->sourceModel());
+
+    if (sourceModel == nullptr) {
+        qWarning() << "Could not get QStandardItemModel from proxy model!";
+        // emit clearModel(); // Old way - uncomment if fallback needed
+        updateButtonsRowCountDependent();
+        selectFocus();
+
+    } else {
+        myListUndoBuffer.clear();
+
+        // Backup rows by taking them from the model
+        myListUndoBuffer.reserve(sourceModel->rowCount());
+
+        // Iterate backwards because takeRow shifts subsequent row indices
+        // myListUndoBuffer will store rows in their reverse order
+        for (int nIndex = sourceModel->rowCount() - 1; nIndex >= 0; --nIndex) {
+            myListUndoBuffer.push_back(sourceModel->takeRow(nIndex));
+        }
+
+        bIsClearPending = true;
+        updateButtonsRowCountDependent(); // Update button text and state
+
+        ToastNotificationWidget::showMessage(this, tr("Table cleared. Click 'Undo Clear' to restore."), ToastNotificationWidget::INFO, CLEAR_UNDO_TIMEOUT_MS);
+        myTimerUndoClear->start(CLEAR_UNDO_TIMEOUT_MS);
+    }
+}
+
+void LoggerClientWidget::savedSelectedIndex()
+{
+    QModelIndex currentProxyIndex = myTableView->currentIndex();
+
+    if (currentProxyIndex.isValid()) {
+        mySavedModelIndex = myProxyModel->mapToSource(currentProxyIndex);
+
+    } else {
+        mySavedModelIndex = QPersistentModelIndex(); // Clear if nothing selected
+    }
+}
+
 void LoggerClientWidget::buttonConnectToServerToggled(bool bButtonState)
 {
     if (bButtonState == true) {
         myChannelSocketClient->setNeverDies(true); //TODO get this option from an UI checkbox
-        bool bConnectionResult = myChannelSocketClient->connect(myServerConnectionWidget->getIp(), myServerConnectionWidget->getPort());
+        const bool bConnectionResult = myChannelSocketClient->connect(myServerConnectionWidget->getIp(), myServerConnectionWidget->getPort());
 
         if (bConnectionResult == true) {
             setLogWidgetMode(SERVER_CONNECTING);
@@ -650,7 +733,7 @@ void LoggerClientWidget::buttonConnectToServerToggled(bool bButtonState)
         } else {
             setLogWidgetMode(EMPTY);
 
-            ToastNotificationWidget::showMessage(this, QStringLiteral("Wrong IP or Port"), ToastNotificationWidget::ERROR, 2000);
+            ToastNotificationWidget::showMessage(this, tr("Wrong IP or Port"), ToastNotificationWidget::ERROR, 2000);
         }
 
     } else {
@@ -676,7 +759,7 @@ void LoggerClientWidget::buttonOpenFileClicked(bool bButtonState)
     } else {
         setLogWidgetMode(EMPTY);
 
-        emit clearModel();
+        Q_EMIT clearModel();
     }
 
     selectFocus();
@@ -684,7 +767,7 @@ void LoggerClientWidget::buttonOpenFileClicked(bool bButtonState)
 
 void LoggerClientWidget::buttonOpenFileResult(const QString &szFilename)
 {
-    emit parseFile(szFilename);
+    Q_EMIT parseFile(szFilename);
 }
 
 void LoggerClientWidget::fileParsingResult(const int nResult, const QString &szFilename)
@@ -712,14 +795,12 @@ void LoggerClientWidget::pasteText()
         }
 
     } else {
-        emit parseClipboard();
+        Q_EMIT parseClipboard();
     }
 }
 
 void LoggerClientWidget::clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult)
 {
-//    TimeUtils::printTimeMilliseconds();
-
     if (eParsingResult == GlobalConstants::SUCCESS) {
         setLogWidgetMode(CLIPBOARD);
         resizeColumnsIfNeeded(true);
@@ -762,9 +843,15 @@ void LoggerClientWidget::rowsInsertedInModel(const QModelIndex &parent, int firs
         myTableView->scrollToBottom();
     }
 
-    if (first % 100 == 0) {
-        updateButtonsRowCountDependent();
-        resizeColumnsIfNeeded();
+    // Update buttons only if not in pending clear state
+    if (bIsClearPending == false) {
+        if (first % 100 == 0) {
+            updateButtonsRowCountDependent();
+            resizeColumnsIfNeeded();
+
+        } else if (myProxyModel->rowCount() > 0) {
+            updateButtonsRowCountDependent();
+        }
     }
 }
 
@@ -776,7 +863,10 @@ void LoggerClientWidget::rowsRemovedFromModel(const QModelIndex &parent, int fir
 
 //    qDebug() << "rowsRemovedFromModel" << first << last;
 
-    if (myTableView->model()->rowCount() == 0) {
+    // Update buttons only if not in pending clear state
+    if (bIsClearPending == false
+        && myTableView->model()->rowCount() == 0) {
+
         updateButtonsRowCountDependent();
     }
 }
@@ -785,20 +875,75 @@ void LoggerClientWidget::buttonClickedClearTable(bool bState)
 {
     Q_UNUSED(bState)
 
-    emit clearModel();
+    if (bIsClearPending) {
+        undoClearTable();
 
-    updateButtonsRowCountDependent();
+    } else {
+        initiateClearTable();
+    }
+
     selectFocus();
+}
+
+void LoggerClientWidget::finalizeClearTable()
+{
+    if (bIsClearPending == false) {
+        return;
+    }
+
+    // Permanently delete the buffered items
+    // MemoryUtils::clearAndDeleteItems(m_undoBuffer);
+    myListUndoBuffer.clear();
+
+    bIsClearPending = false;
+    updateButtonsRowCountDependent(); // Reset button text and state
+    selectFocus();
+}
+
+void LoggerClientWidget::undoClearTable()
+{
+    if (bIsClearPending == false) {
+        return;
+    }
+
+    myTimerUndoClear->stop();
+
+    QStandardItemModel *sourceModel = qobject_cast<QStandardItemModel *>(myProxyModel->sourceModel());
+
+    if (sourceModel == nullptr) {
+        qWarning() << "Could not get QStandardItemModel from proxy model during undo";
+        // Clear buffer anyway to prevent memory leaks, but can't restore
+        myListUndoBuffer.clear();
+        bIsClearPending = false;
+        updateButtonsRowCountDependent();
+        selectFocus();
+
+    } else {
+        for (int nIndex = myListUndoBuffer.size() - 1; nIndex >= 0; --nIndex) {
+            sourceModel->appendRow(myListUndoBuffer[nIndex]);
+        }
+
+        myListUndoBuffer.clear();
+
+        bIsClearPending = false;
+        updateButtonsRowCountDependent(); // Reset button text and state
+        selectFocus();
+
+        ToastNotificationWidget::showMessage(this, tr("Clear undone. Table restored."), ToastNotificationWidget::SUCCESS, 2000);
+    }
 }
 
 void LoggerClientWidget::buttonClickedClearFilter(bool bState)
 {
     Q_UNUSED(bState)
 
-    myProxyModel->setFilterRegExp(QRegExp());
+    savedSelectedIndex();
 
-    updateButtonsRowCountDependent();
-    selectFocus();
+    mySearchWidget->clear(); //this will trigger searchTextChanged, which calls setFilterRegExp
+    myProxyModel->setFilterRegExp(QRegularExpression(), false); // Explicitly clear any remaining filter (e.g., column filter)
+
+    // updateButtonsRowCountDependent(); // filterStateChanged will be emitted, no need to call this here
+    // selectFocus(); // Let filterStateChanged handle focus/scrolling
 }
 
 void LoggerClientWidget::buttonClickedSaveToFile(QAction *myAction)
@@ -862,12 +1007,11 @@ void LoggerClientWidget::buttonSaveToFileResult(const QString &szFilename)
                                              ToastNotificationWidget::ERROR,
                                              5000);
     }
-
 }
 
 void LoggerClientWidget::customContextMenuRequestedOnTableView(const QPoint &pos)
 {
-    QModelIndex myModelIndex = myTableView->indexAt(pos);
+    const QModelIndex myModelIndex = myTableView->indexAt(pos);
 
     QList<QAction *> *myActionList = myProxyModel->generateActionsForIndex(myModelIndex, this);
 
@@ -890,22 +1034,41 @@ void LoggerClientWidget::customContextMenuRequestedOnTableView(const QPoint &pos
     myMenu->popup(myTableView->viewport()->mapToGlobal(pos));
 }
 
-void LoggerClientWidget::filterStateChanged(bool bState)
+void LoggerClientWidget::filterStateChanged(bool bIsFilterActive)
 {
-    if (bState == true) {
-        pushButtonClearFilter->setEnabled(true);
+    pushButtonClearFilter->setEnabled(bIsFilterActive);
 
-    } else {
-        pushButtonClearFilter->setEnabled(false);
+    if (mySavedModelIndex.isValid()) {
+        QModelIndex newProxyIndex = myProxyModel->mapFromSource(mySavedModelIndex);
+
+        if (newProxyIndex.isValid()) {
+            QApplication::processEvents(QEventLoop::WaitForMoreEvents); // update the tableview before scrolling
+            myTableView->setCurrentIndex(newProxyIndex);
+            myTableView->scrollTo(newProxyIndex, QAbstractItemView::EnsureVisible);
+        }
+
+        // Clear the preserved index after attempting restoration
+        mySavedModelIndex = QPersistentModelIndex();
     }
 }
 
-void LoggerClientWidget::searchTextChanged(const QString &szText)
+void LoggerClientWidget::searchTextChanged(const QString &szSearchText, QRegularExpression::PatternOptions eOptions)
 {
-//    qDebug() << "searchTextChanged:" << szText;
+    //    qDebug() << "searchTextChanged:" << szSearchText;
 
-    myProxyModel->setFilterRegExp(QRegExp(szText, Qt::CaseInsensitive, QRegExp::FixedString), false);
-    myProxyModel->setFilterKeyColumn(-1);
+    savedSelectedIndex();
+
+    QRegularExpression myRegExp(szSearchText, eOptions);
+
+    if (myRegExp.isValid() == true) {
+        // myProxyModel->setFilterKeyColumn(myProxyModel->getVisibleIndexForColumn(LoggerEnum::COLUMN_MESSAGE));
+        myProxyModel->setFilterKeyColumn(-1);
+        myProxyModel->setFilterRegExp(myRegExp, false); //false = not an actual filter, just text search
+
+    } else {
+        // ToastNotificationWidget::showMessage(this, tr("Invalid regex"), ToastNotificationWidget::ERROR, 2000);
+        myProxyModel->setFilterRegExp(QRegularExpression(), false); // Clear filter on invalid regex
+    }
 
 //    QModelIndexList myMatches = myProxyModel->match(myProxyModel->index(0, 0), Qt::UserRole, szText, -1, Qt::MatchContains | Qt::MatchFixedString | Qt::MatchWrap);
 
@@ -955,7 +1118,7 @@ void LoggerClientWidget::connectionInProgress()
 
 void LoggerClientWidget::loggerPatternChanged(const QString &szLoggerPattern)
 {
-    emit loggerPatternChangedSignal(szLoggerPattern);
+    Q_EMIT loggerPatternChangedSignal(szLoggerPattern);
 }
 
 void LoggerClientWidget::tableViewHeaderResized(int logicalIndex, int oldSize, int newSize)
@@ -971,12 +1134,12 @@ void LoggerClientWidget::tableViewHeaderResized(int logicalIndex, int oldSize, i
 
 void LoggerClientWidget::resizeColumnsLoosely()
 {
-    const double nAverageCharWidth = this->font().pointSize() * 0.70; //this->fontMetrics().averageCharWidth() * 1.1;
+    const double dAverageCharWidth = this->font().pointSize() * 0.70; //this->fontMetrics().averageCharWidth() * 1.1;
 
     for (int nColumn = 0; nColumn < myTableView->horizontalHeader()->count(); ++nColumn) {
         const int nSize = myTableView->getColumnMaxCharCount(nColumn, 0, -1, true);
 
-        myTableView->horizontalHeader()->resizeSection(nColumn, qRound(nSize * nAverageCharWidth) + nAverageCharWidth * 3);
+        myTableView->horizontalHeader()->resizeSection(nColumn, static_cast<int>(qRound(nSize * dAverageCharWidth) + dAverageCharWidth * 3));
     }
 }
 
@@ -1014,11 +1177,11 @@ void LoggerClientWidget::dropEvent(QDropEvent *myDropEvent)
         const QMimeData *mime = myDropEvent->mimeData();
         QString szDroppedFile = mime->text();
 
-        if (szDroppedFile.startsWith(QLatin1String("file:///")) == true) {
-            szDroppedFile.remove(0, QLatin1String("file:///").size());
+        if (szDroppedFile.startsWith(QStringLiteral("file:///")) == true) {
+            szDroppedFile.remove(0, QStringLiteral("file:///").size());
         }
 
-        emit parseFile(szDroppedFile);
+        Q_EMIT parseFile(szDroppedFile);
 
         myDropEvent->accept();
 
@@ -1044,7 +1207,7 @@ void LoggerClientWidget::moveEvent(QMoveEvent *event)
 void LoggerClientWidget::initDebugFocusChanged()
 {
     ///DEBUG
-    connect(qApp,                       &QApplication::focusChanged,
+    connect(qApp,               &QApplication::focusChanged,
     this,                       [ ] (QWidget * before, QWidget * after) {
         qDebug() << "Focus changed"
                  << "from"
@@ -1054,5 +1217,3 @@ void LoggerClientWidget::initDebugFocusChanged()
     });
 }
 #endif
-
-

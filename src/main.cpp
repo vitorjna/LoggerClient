@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
-#include <unistd.h>
 
 #include <QAbstractSocket>
 #include <QApplication>
@@ -14,18 +13,6 @@
 #include "ui/ToastNotificationWidget.h"
 
 void registerMetatypes();
-extern "C" [[noreturn]] void __cxa_pure_virtual(void);
-
-namespace __cxxabiv1
-{
-extern "C"
-void __cxa_pure_virtual(void)
-{
-    char const msg[] = "pure virtual called\n";
-    write(2, msg, sizeof msg - 1);
-    std::terminate();
-}
-} // namespace __cxxabiv1
 
 void registerMetatypes()
 {
@@ -38,9 +25,9 @@ void registerMetatypes()
 
 int main(int argc, char **argv)
 {
-    qsrand(QTime::currentTime().msec());
+    srand(QTime::currentTime().msec());
 
-    QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
+    // QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
 //    Tests::run();
 

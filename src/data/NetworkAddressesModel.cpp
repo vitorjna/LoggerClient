@@ -22,7 +22,7 @@ QString NetworkAddressesModel::getColumnName(const NetworkAddressesEnum::Columns
             return tr("Port");
 
         case NetworkAddressesEnum::COUNT_TABLE_COLUMNS:
-            return QLatin1String("");
+            return QString();
     }
 }
 

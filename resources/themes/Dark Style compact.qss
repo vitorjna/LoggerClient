@@ -101,7 +101,7 @@ QAbstractItemView
 
 QWidget:focus, QMenuBar:focus
 {
-	border: 1px solid rgba(48, 86, 111);
+	border: 1px solid rgb(48, 86, 111);
 }
 
 QTabWidget:focus, QCheckBox:focus

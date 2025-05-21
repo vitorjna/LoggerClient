@@ -36,7 +36,7 @@ private:
     void setupSignalsAndSlots();
     void loadSettings();
 
-    QStringList loadThemeChoices();
+    QStringList loadThemeChoices() const;
 
     QComboBox                   *comboBoxThemeChoice{};
     QSpinBox                    *spinBoxFontSize{};
@@ -56,24 +56,24 @@ private:
 
     QDialogButtonBox            *buttonBoxCloseWindow{};
 
-signals:
+Q_SIGNALS:
     void aboutToHide();
     void fontSizeChanged(const int nValue);
     void rowHeightBiasChanged(const int nValue);
 
-protected slots:
-    void themeSelectionChanged(const QString &szNewTheme);
+protected Q_SLOTS:
+    void themeSelectionChanged(const QString &szNewTheme) const;
 
     void fontSizeChangedSlot(const int nValue);
     void rowHeightBiasChangedSlot(const int nValue);
 
-    void formatExportedLogsChanged(const int nState);
+    void formatExportedLogsChanged(Qt::CheckState eState) const;
 
-    void codeEditorLanguageChanged(const QString &szNewLanguage);
+    void codeEditorLanguageChanged(const QString &szNewLanguage) const;
     void codeEditorSelectionChanged(const QString &szNewEditor);
     void codeEditorLocationChanged(const QString &szNewLocation);
 
-    void activeProjectNameSelectionChanged(const QString &szProjectName);
+    void activeProjectNameSelectionChanged(const QString &szProjectName) const;
 
     void buttonEditorLocationPickClicked(bool bState);
 

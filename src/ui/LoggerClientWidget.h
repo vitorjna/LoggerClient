@@ -16,7 +16,9 @@
 #include <QScrollBar>
 #include <QShortcut>
 #include <QStyleFactory>
+#include <QStandardItem>
 #include <QThread>
+#include <QTimer>
 #include <QWidget>
 
 #include "application/GlobalConstants.h"
@@ -64,29 +66,39 @@ protected:
     void saveWindowPosition();
 
 private:
+    static const int CLEAR_UNDO_TIMEOUT_MS = 5000; // 5 seconds for undo
+
     void setupUI();
     void setupSignalsAndSlots();
     void setupShortcuts();
     void loadSettings();
 
-    void setLogWidgetMode(const LogMode eMode, const QString &szText = QStringLiteral(""), bool bForce = false);
+    void setLogWidgetMode(const LogMode eMode, const QString &szText = QString(), bool bForce = false);
 
     void selectFocus();
     void updateButtonsRowCountDependent(LogMode eNewMode = COUNT_LOG_MODE);
+    void updateClearButtonText();
     void resizeColumnsIfNeeded(bool bIgnoreRowCount = false);
 
-    void saveTableToFile(const QString &szFilename = QLatin1String(""));
+    void saveTableToFile(const QString &szFilename = QString());
 
     QString getClientInfoMessage();
 
+    void initiateClearTable();
+
+    void savedSelectedIndex();
+
     ///properties
     const QString           szWindowTitle = QStringLiteral("Logger Client");
-//    QString                 szLoggerPattern = QStringLiteral("[%d][FILE:%c{1}.java]: %p %m"); //[2018-09-11 00:00:27,251][FILE:ServiceCloseOpenShift.java]: DEBUG (606020) Attempt to start close shift ended
     bool                    bUsingCustomColumnWidth;
     LogMode                 eCurrentMode;
     QString                 szSavedLogFile;
     bool                    bOpenFileAfterSavingPending;
     bool                    bIsAtBottom;
+    QPersistentModelIndex   mySavedModelIndex;
+    QTimer                  *myTimerUndoClear = nullptr;
+    QList<QList<QStandardItem*>> myListUndoBuffer;
+    bool                    bIsClearPending = false;
 
     ///elements
     ChannelSocketClient     *myChannelSocketClient;
@@ -113,7 +125,7 @@ private:
 
     KeywordHighlightWidget  *myKeywordHighlightWidget{};
 
-protected slots:
+protected Q_SLOTS:
     void buttonConnectToServerToggled(bool bButtonState);
 
     void buttonOpenFileClicked(bool bButtonState);
@@ -139,11 +151,11 @@ protected slots:
 
     void filterStateChanged(bool bState);
 
-    void searchTextChanged(const QString &szText);
+    void searchTextChanged(const QString &szText, QRegularExpression::PatternOptions eOptions);
 
     void keywordHighlightChanged(const QStringList &szaKeywords);
 
-private slots:
+private Q_SLOTS:
     void connectionSuccess(const QString &szError);
     void connectionError(int nSocketError, const QString &szError);
     void connectionInProgress();
@@ -158,7 +170,10 @@ private slots:
     void fontSizeChanged(const int nValue);
     void rowHeightBiasChanged(int nValue = INT_MAX);
 
-signals:
+    void finalizeClearTable();
+    void undoClearTable();
+
+Q_SIGNALS:
     void clearModel();
 
     void loggerPatternChangedSignal(QString);

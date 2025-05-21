@@ -7,8 +7,8 @@ PushButtonWithMenu::PushButtonWithMenu(QWidget *parent)
     setAutoRaise(true);
 //    setToolButtonStyle(Qt::ToolButtonTextOnly);
 
-    connect(this,   SIGNAL(triggered(QAction *)),
-            this,   SLOT(setDefaultAction(QAction *)));
+    connect(this,   SIGNAL(triggered(QAction*)),
+            this,   SLOT(setDefaultAction(QAction*)));
 }
 
 PushButtonWithMenu::~PushButtonWithMenu()

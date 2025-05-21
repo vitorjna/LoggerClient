@@ -32,7 +32,7 @@ void LoggerPatternWidget::loadCurrentPattern()
     QStringList szaCurrentPattern = szCurrentPattern.split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
 
     if (szaCurrentPattern.size() != 2) {
-        ToastNotificationWidget::showMessage(nullptr, tr("Could not parse saved pattern: ") + szCurrentPattern + tr(". Using default"), ToastNotificationWidget::ERROR, 3000);
+        ToastNotificationWidget::showMessage(nullptr, tr("Could not parse pattern: ") + szCurrentPattern + tr(". Using default"), ToastNotificationWidget::ERROR, 3000);
 
         szaCurrentPattern = AppSettings::getDefaultValue(AppSettings::KEY_LOGGER_PATTERN).toString().split(GlobalConstants::SEPARATOR_SETTINGS_LIST);
     }
@@ -58,13 +58,13 @@ void LoggerPatternWidget::setupUi()
         comboBoxLoggerPatternName = new QComboBox(this);
         comboBoxLoggerPatternName->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Fixed);
         comboBoxLoggerPatternName->setEditable(true);
-        comboBoxLoggerPatternName->setModel(static_cast<QAbstractItemModel *>(myLoggerPatternManagerWidget->getModel()));
+        comboBoxLoggerPatternName->setModel(myLoggerPatternManagerWidget->getModel());
         comboBoxLoggerPatternName->setModelColumn(LoggerPatternsEnum::COLUMN_PATTERN_NAME);
 
         comboBoxLoggerPattern = new QComboBox(this);
         comboBoxLoggerPattern->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Fixed);
         comboBoxLoggerPattern->setEditable(true);
-        comboBoxLoggerPattern->setModel(static_cast<QAbstractItemModel *>(myLoggerPatternManagerWidget->getModel()));
+        comboBoxLoggerPattern->setModel(myLoggerPatternManagerWidget->getModel());
         comboBoxLoggerPattern->setModelColumn(LoggerPatternsEnum::COLUMN_PATTERN);
 
         buttonManagePatterns = new QPushButton(this);
@@ -97,7 +97,7 @@ void LoggerPatternWidget::setupSignalsAndSlots()
             this,                               &LoggerPatternWidget::buttonManagePatternsToggled);
 
     connect(myLoggerPatternManagerWidget,       &LoggerPatternManagerWidget::aboutToHide,
-            this,                               [ = ] { buttonManagePatterns->setChecked(false); } );
+            this,                               [ this ] { buttonManagePatterns->setChecked(false); } );
 
     connect(myLoggerPatternManagerWidget,       &LoggerPatternManagerWidget::patternChangeRequested,
             this,                               &LoggerPatternWidget::patternChangeRequested);
@@ -106,7 +106,7 @@ void LoggerPatternWidget::setupSignalsAndSlots()
 
 void LoggerPatternWidget::loggerPatternNameChanged(const QString &szPatternName)
 {
-    int nRow = myLoggerPatternManagerWidget->getRowIndex(szPatternName, LoggerPatternsEnum::COLUMN_PATTERN_NAME);
+    const int nRow = myLoggerPatternManagerWidget->getRowIndex(szPatternName, LoggerPatternsEnum::COLUMN_PATTERN_NAME);
 
     if (nRow == -1) {
         return;
@@ -117,9 +117,9 @@ void LoggerPatternWidget::loggerPatternNameChanged(const QString &szPatternName)
 
 void LoggerPatternWidget::loggerPatternChanged(const QString &szPattern)
 {
-    emit loggerPatternChangedSignal(szPattern);
+    Q_EMIT loggerPatternChangedSignal(szPattern);
 
-    int nRow = myLoggerPatternManagerWidget->getRowIndex(szPattern, LoggerPatternsEnum::COLUMN_PATTERN);
+    const int nRow = myLoggerPatternManagerWidget->getRowIndex(szPattern, LoggerPatternsEnum::COLUMN_PATTERN);
 
     comboBoxLoggerPatternName->setCurrentIndex(nRow); //if no match, name will be empty
 
