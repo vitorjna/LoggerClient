@@ -52,7 +52,7 @@ jobs:
     #   uses: threeal/cmake-action@v2.1.0
     
     - name: Configure CMake
-      env:
+      # env:
         # CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
         # CC: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
         # CXX: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
