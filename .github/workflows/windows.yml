@@ -39,7 +39,7 @@ jobs:
       uses: actions/checkout@v4.2.2
       
     - name: Configure CMake
-      run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}/lib/cmake/" -DQt6_DIR=${{env.Qt6_Dir}}/lib/cmake/Qt6/ -G "Ninja" -B '${{github.workspace}}'/build
+      run: cd ${{github.workspace}}/src && cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}/lib/cmake/" -G "Ninja" -B '${{github.workspace}}'/build
 
     - name: Build
       run: cmake --build '${{github.workspace}}'/build --target RePr
