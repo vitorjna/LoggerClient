@@ -41,9 +41,9 @@ jobs:
     - name: Configure CMake
       env:
         CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
-        CMAKE_C_COMPILER: ${{env.IQTA_TOOLS}}/mingw1310_64/bin/gcc.exe
-        CMAKE_CXX_COMPILER: ${{env.IQTA_TOOLS}}/mingw1310_64/bin/g++.exe
-        Qt6_DIR: ${{env.QT_ROOT_DIR}}/lib/cmake/Qt6
+        CMAKE_C_COMPILER: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
+        CMAKE_CXX_COMPILER: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
+        Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
       run: | 
         cd ${{github.workspace}}/src
         cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja" -B '${{github.workspace}}/build'
