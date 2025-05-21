@@ -39,6 +39,8 @@ jobs:
     #   uses: threeal/cmake-action@v2.1.0
     
     - name: Configure CMake
+      env:
+        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
       run: cd ${{github.workspace}}/src && cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja" -B '${{github.workspace}}/build'
       
 
