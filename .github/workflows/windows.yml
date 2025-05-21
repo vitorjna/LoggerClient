@@ -1,0 +1,55 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [ "main" ]
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.github/**'
+      - 'resources/**'
+      
+  pull_request:
+    branches: [ "main" ]    
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      # - '.github/**'
+      - 'resources/**'
+
+env:
+  BUILD_TYPE: Release
+  
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Project
+      uses: actions/checkout@v4.2.2
+      
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.8.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_mingw'
+        tools: 'tools_ninja tools_mingw1310'
+        cache: true
+      
+    # - name: Build Project
+    #   uses: threeal/cmake-action@v2.1.0
+    
+    - name: Configure CMake
+      # env:
+        # CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
+        # CC: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
+        # CXX: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
+        # Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
+      run: cmake -S ${{github.workspace}}/src -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}" -G "Ninja" -B '${{github.workspace}}/build'
+      
+    - name: Build
+      run: cmake --build '${{github.workspace}}/build' --target LoggerClient
