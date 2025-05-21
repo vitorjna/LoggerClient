@@ -3,8 +3,21 @@ name: Build Windows
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.github/**'
+      - 'resources/**'
+      
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main" ]    
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.github/**'
+      - 'resources/**'
 
 env:
   BUILD_TYPE: Release
@@ -27,7 +40,7 @@ jobs:
         host: 'windows'
         target: 'desktop'
         arch: 'win64_mingw'
-        dir: '${{github.workspace}}/qt/'
+        dir: '${{github.workspace}}'
         tools: 'tools_ninja tools_cmake tools_mingw1310'
         install-deps: 'false'
         cache: 'true'
@@ -40,14 +53,12 @@ jobs:
     
     - name: Configure CMake
       env:
-        CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
-        CC: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
-        CXX: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
-        Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
+        # CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
+        # CC: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
+        # CXX: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
+        # Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
       run: |
-        echo $PATH
-        cd ${{github.workspace}}/src
-        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja" -B '${{github.workspace}}/build'
+        cmake -S ${{github.workspace}}/src -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}" -G "Ninja" -B '${{github.workspace}}/build'
       
     - name: Build
       run: cmake --build '${{github.workspace}}'/build --target RePr
