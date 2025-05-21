@@ -2,9 +2,9 @@ name: Build Windows
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 env:
   BUILD_TYPE: Release
@@ -12,34 +12,33 @@ env:
 jobs:
   build:
     runs-on: windows-latest
-    defaults:
-        run:
-            shell: msys2 {0}
 
     steps:
-      - uses: msys2/setup-msys2@v2
-        with:
-            install: mingw-w64-x86_64-toolchain
-            msystem: mingw64
-            release: false
+#      - uses: msys2/setup-msys2@v2
+#        with:
+#            install: mingw-w64-x86_64-toolchain
+#            msystem: mingw64
+#            release: false
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: '6.8.3'
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2022_64'
-          dir: '${{github.workspace}}/qt/'
-          install-deps: 'true'
+    - uses: actions/checkout@v4
+    
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.8.3'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2022_64'
+        dir: '${{github.workspace}}/qt/'
+        install-deps: 'true'
 
-      - name: List files in Qt
-        run: find ${{env.Qt6_Dir}}
+    - name: List files in Qt
+      run: find ${{env.Qt6_Dir}}
 
-      - uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
-      - name: Configure CMake
-        run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt5_Dir}}/lib/cmake/" -DQt5_DIR=${{env.Qt5_Dir}}/lib/cmake/Qt5/ -G "CodeBlocks - MinGW Makefiles" -B '${{github.workspace}}'/build
+    - name: Configure CMake
+      run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}/lib/cmake/" -DQt6_DIR=${{env.Qt6_Dir}}/lib/cmake/Qt6/ -G "Ninja" -B '${{github.workspace}}'/build
 
-      - name: Build
-        run: cmake --build '${{github.workspace}}'/build --target RePr
+    - name: Build
+      run: cmake --build '${{github.workspace}}'/build --target RePr
