@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - build_.*  
+
+env:
+  BUILD_TYPE: Release
+  TODAY: $(date + '%Y%m%d')
+  
+jobs:
+  call-workflow:
+    uses: vitorjna/LoggerClient/.github/workflows/windows.yml@main
+    
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Project
+      uses: actions/checkout@v4.2.2
+   
+    - name: Deploy
+      run: |
+           mkdir LoggerClient-${{TODAY}}
+           move ${{github.workspace}}/build/LoggerClient.exe LoggerClient-${{TODAY}}
+           windeployqt LoggerClient-${{TODAY}}/LoggerClient.exe -qmldir="${{env.QML_DIR_WIN}}" --compiler-runtime
+           xcopy resources\themes LoggerClient-${{TODAY}}\themes    
+
+    - name: Compress release
+      uses: edgarrc/action-7z@v1.0.5
+      with:
+        args: 7z a -t7z -mx=9 LoggerClient-${{TODAY}}.7z LoggerClient-${{TODAY}}
+ 
+    - name: Upload release
+      uses: actions/upload-artifact@v4.6.2
+      with:
+        name: LoggerClient-${{TODAY}}.7z
+        path: ${{github.workspace}}
