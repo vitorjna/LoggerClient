@@ -46,11 +46,7 @@ jobs:
         Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
       run: | 
         cd ${{github.workspace}}/src
-        cmake \
-          -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} \
-          -DCMAKE_CXX_COMPILER=${{env.CMAKE_CXX_COMPILER}} \
-          -DCMAKE_C_COMPILER=${{env.CMAKE_C_COMPILER}} \
-          -G "Ninja" -B '${{github.workspace}}/build'
+        cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_CXX_COMPILER=${{env.CMAKE_CXX_COMPILER}} -DCMAKE_C_COMPILER=${{env.CMAKE_C_COMPILER}} -G "Ninja" -B '${{github.workspace}}/build'
       
     - name: Build
       run: cmake --build '${{github.workspace}}'/build --target RePr
