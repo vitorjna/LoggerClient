@@ -9,7 +9,6 @@ on:
 
 env:
   BUILD_TYPE: Release
-  TODAY: $(date + '%Y%m%d')
   
 jobs:
   call-workflow:
@@ -21,6 +20,7 @@ jobs:
     steps:   
     - name: Deploy
       run: |
+           echo "TODAY=$(date + '%Y%m%d')" >> $GITHUB_ENV
            mkdir LoggerClient-${{TODAY}}
            move ${{github.workspace}}/build/LoggerClient.exe LoggerClient-${{TODAY}}
            windeployqt LoggerClient-${{TODAY}}/LoggerClient.exe -qmldir="${{env.QML_DIR_WIN}}" --compiler-runtime
