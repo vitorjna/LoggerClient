@@ -19,8 +19,6 @@ jobs:
 #            install: mingw-w64-x86_64-toolchain
 #            msystem: mingw64
 #            release: false
-
-    - uses: actions/checkout@v4
     
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
@@ -30,13 +28,16 @@ jobs:
         target: 'desktop'
         arch: 'win64_msvc2022_64'
         dir: '${{github.workspace}}/qt/'
-        install-deps: 'true'
+        tools: 'tools_ninja tools_cmake'
+        install-deps: 'false'
+        cache: 'true'
 
-    - name: List files in Qt
-      run: find ${{env.Qt6_Dir}}
+    - name: Build Project
+      uses: threeal/cmake-action@v2.1.0
 
-    - uses: actions/checkout@v2
-
+    - name: Checkout Project
+      uses: actions/checkout@v4.2.2
+      
     - name: Configure CMake
       run: cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}/lib/cmake/" -DQt6_DIR=${{env.Qt6_Dir}}/lib/cmake/Qt6/ -G "Ninja" -B '${{github.workspace}}'/build
 
