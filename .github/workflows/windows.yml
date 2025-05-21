@@ -41,8 +41,9 @@ jobs:
     - name: Configure CMake
       env:
         CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
+        CMAKE_C_COMPILER: ${{env.QT_ROOT_DIR}}
+        CMAKE_CXX_COMPILER: ${{env.QT_ROOT_DIR}}/Tools/mingw1310_64/bin
       run: cd ${{github.workspace}}/src && cmake -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -G "Ninja" -B '${{github.workspace}}/build'
       
-
     - name: Build
       run: cmake --build '${{github.workspace}}'/build --target RePr
