@@ -342,6 +342,9 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(myKeywordHighlightWidget,   &KeywordHighlightWidget::keywordsChangedSignal,
             this,                       &LoggerClientWidget::keywordHighlightChanged);
 
+    // UNDO TIMER
+    connect(myTimerUndoClear,           &QTimer::timeout,
+            this,                       &LoggerClientWidget::finalizeClearTable);
 }
 
 void LoggerClientWidget::setupShortcuts()
