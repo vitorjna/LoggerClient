@@ -131,7 +131,7 @@ void LoggerTreeView::copySelectedData(int nColumnIndex)
 
 void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)
 {
-    qDebug() << index.row() << index.column();
+    // qDebug() << index.row() << index.column();
 
     if (hint == QAbstractItemView::EnsureVisible
         && index.column() == index.model()->columnCount() - 1) { //last column

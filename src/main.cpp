@@ -34,6 +34,7 @@ int main(int argc, char **argv)
     registerMetatypes();
 
     QApplication loggerClient(argc, argv);
+    loggerClient.setStyle("Fusion");
 
     LoggerClientWidget myLoggerClientWidget;
     myLoggerClientWidget.show();

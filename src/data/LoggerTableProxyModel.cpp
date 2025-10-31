@@ -670,7 +670,7 @@ void LoggerTableProxyModel::parseClipboard()
 
     QString szClipboardData = QApplication::clipboard()->text();
 
-#define DEBUG_SPEED
+// #define DEBUG_SPEED
 #ifdef DEBUG_SPEED
     TimeUtils::startTimer();
 #endif
