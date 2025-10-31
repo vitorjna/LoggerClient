@@ -65,6 +65,8 @@ public:
 protected:
     void saveWindowPosition();
 
+    QTimer *myTimerDebouncing = nullptr;
+
 private:
     static const int CLEAR_UNDO_TIMEOUT_MS = 5000; // 5 seconds for undo
 

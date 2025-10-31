@@ -19,6 +19,9 @@ public:
 
     int getColumnMaxCharCount(int nCol, int nRowTop = 0, int nRowBottom = -1, bool bFixOutliers = false);
 
+public Q_SLOTS:
+    void copySelectedData(int nColumnIndex);
+
 //reimplemented
 public:
     void scrollTo(const QModelIndex &index, ScrollHint hint) override;

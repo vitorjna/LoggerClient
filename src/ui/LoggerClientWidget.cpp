@@ -12,7 +12,6 @@
 #include "ui/widget/SearchWidget.h"
 #include "util/FileUtils.h"
 #include "util/MemoryUtils.h"
-#include "util/TimeUtils.h"
 #include "view/LoggerTreeView.h"
 
 //TODO Bug: filter by one column. Then filter by other column, Clear Table button becomes disabled
@@ -20,9 +19,7 @@
 //TODO class filter and text search are mutually exclusive. Both act on setFilterRegExp
 //TODO open file and set breakpoint
 //TODO open multiple editor context menu
-//TODO right click on selected cells, copy only that column contents. Good to export XML from multiple lines
 //TODO right click with multiple lines selected: generate "filter by" action for all classes
-//TODO add default name for log file saving as text
 //TODO add TipWidget (NAM: you can copy and paste from the table. Paste in the format...). Auto hides itself by a checkbox in the OptionsWidget
 //TODO add button to reset patterns to default values
 
@@ -43,6 +40,11 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
 #ifdef DEBUG_STUFF
 //    initDebugFocusChanged();
 #endif
+
+    myTimerDebouncing = new QTimer(this);
+    myTimerDebouncing->setSingleShot(true);
+    myTimerDebouncing->setInterval(250);
+    connect(myTimerDebouncing, &QTimer::timeout, this, [=](){ saveWindowPosition(); });
 
     this->hide();
 
@@ -288,6 +290,9 @@ void LoggerClientWidget::setupSignalsAndSlots()
 
     connect(myProxyModel,               &LoggerTableProxyModel::filterStateChanged,
             this,                       &LoggerClientWidget::filterStateChanged);
+
+    connect(myProxyModel,               &LoggerTableProxyModel::copySelectedData,
+            myTableView,                &LoggerTreeView::copySelectedData);
 
     connect(this,                       &LoggerClientWidget::parseClipboard,
             myProxyModel,               &LoggerTableProxyModel::parseClipboard);
@@ -989,6 +994,7 @@ void LoggerClientWidget::buttonClickedSaveToFile(QAction *myAction)
         myFileDialog->setFileMode(QFileDialog::AnyFile);
 
         myFileDialog->setNameFilters(FileUtils::getFileTypeFilterLog());
+        myFileDialog->selectFile("LOG_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
 
         myFileDialog->open(this, SLOT(buttonSaveToFileResult(QString)));
 
@@ -1196,13 +1202,13 @@ void LoggerClientWidget::dropEvent(QDropEvent *myDropEvent)
 
 void LoggerClientWidget::resizeEvent(QResizeEvent *event)
 {
-    saveWindowPosition();
+    myTimerDebouncing->start();
     QWidget::resizeEvent(event);
 }
 
 void LoggerClientWidget::moveEvent(QMoveEvent *event)
 {
-    saveWindowPosition();
+    myTimerDebouncing->start();
     QWidget::moveEvent(event);
 }
 

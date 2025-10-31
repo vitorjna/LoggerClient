@@ -110,6 +110,25 @@ int LoggerTreeView::getColumnMaxCharCount(int nCol, int nRowTop, int nRowBottom,
     return static_cast<int>(nMaxSize * LoggerTableProxyModel::getColumnWidthBias(static_cast<LoggerEnum::Columns>(nCol)));
 }
 
+void LoggerTreeView::copySelectedData(int nColumnIndex)
+{
+    if (selectedIndexes().isEmpty() == true) {
+        return;
+    }
+
+    QString szText;
+
+    const QItemSelection &myItemSelection = selectionModel()->selection();
+
+    for (const QItemSelectionRange &mySelectionRange : myItemSelection) {
+        szText.append(this->toString(mySelectionRange.top(), mySelectionRange.bottom(), nColumnIndex, nColumnIndex));
+    }
+
+    QApplication::clipboard()->setText(szText);
+
+    ToastNotificationWidget::showMessage(this, tr("Data copied to clipboard"), ToastNotificationWidget::SUCCESS, 1500);
+}
+
 void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)
 {
     qDebug() << index.row() << index.column();

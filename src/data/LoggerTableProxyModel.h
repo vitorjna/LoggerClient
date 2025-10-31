@@ -95,7 +95,7 @@ private:
             qDebug() << "patternData: "
                      << "\tpattern:"    << szaLoggerPatternElements[eCurrentPattern]
                      << "\toffset:"     << nDataStartOffset
-                     << "\tseparator:"  << cEndSeparator;
+                     << "\tend_sep:"    << cEndSeparator;
         }
     };
 
@@ -143,6 +143,7 @@ public Q_SLOTS:
 
     void menuActionClickedFilter(bool bState);
     void menuActionClickedOpenFile(bool bState);
+    void menuActionClickedCopySelected(bool bState);
 
     void deleteRowsAbove(bool bState);
     void deleteRowsBelow(bool bState);
@@ -153,6 +154,8 @@ Q_SIGNALS:
     void clipboardParsingResult(const GlobalConstants::ErrorCode eParsingResult);
     void fileParsingResult(const int nResult, const QString &szFilename = QString());
     void filterStateChanged(bool);
+
+    void copySelectedData(int);
 
     void showNotification(const QString &szMessage, const ToastNotificationWidget::NotificationType eNotifType, const int nTimeoutMs);
 

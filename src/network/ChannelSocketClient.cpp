@@ -13,7 +13,7 @@ ChannelSocketClient::ChannelSocketClient(QObject *parent)
     setupSignalsAndSlots();
 
     mySocket->moveToThread(&myWorkerThread);
-    QObject::connect(&myWorkerThread, SIGNAL(finished()), this, SLOT(deleteLater()));
+    QObject::connect(&myWorkerThread, &QThread::finished, this, &QObject::deleteLater);
     myWorkerThread.start();
 }
 
