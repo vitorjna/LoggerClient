@@ -126,7 +126,7 @@ void LoggerTreeView::copySelectedData(int nColumnIndex)
 
     QApplication::clipboard()->setText(szText);
 
-    ToastNotificationWidget::showMessage(this, tr("Data copied to clipboard"), ToastNotificationWidget::SUCCESS, 1500);
+    ToastNotificationWidget::showMessage(this, tr("Column data copied to clipboard"), ToastNotificationWidget::SUCCESS, 1500);
 }
 
 void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)

@@ -27,6 +27,7 @@ QVariant AppSettings::getDefaultValue(const AppSettings::SETTINGS eKey)
             return QVariant("C++" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %t [%c{1}] %p - %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
                             + "C++ exported" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %t %c{1} %p %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
                             + "Java" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d [%c{1}] %p - %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
+                            + "Java exported" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %c{1} %p %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
                             + "Other" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %c{1} [%c{1}] %p - %m");
 
         case AppSettings::KEY_FONT_SIZE:

@@ -575,8 +575,7 @@ void LoggerClientWidget::updateButtonsRowCountDependent(LogMode eNewMode)
         switch (eNewMode) {
             case LoggerClientWidget::EMPTY:
             case LoggerClientWidget::COUNT_LOG_MODE:
-                // Should not happen if rowCount > 0, but disable clear just in case
-                pushButtonClearTable->setEnabled(false);
+                pushButtonClearTable->setEnabled(true); //disconnected, but table has rows
                 break;
 
             case LoggerClientWidget::CLIPBOARD:

@@ -53,7 +53,7 @@ def start_server():
     print('Socket created')
 
     try:
-        soc.bind(("127.0.0.1", 8888))
+        soc.bind(("127.0.0.1", 10000))
         print('Socket bind complete')
     except socket.error as msg:
         import sys
