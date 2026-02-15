@@ -5,9 +5,9 @@
 
 ChannelSocketClient::ChannelSocketClient(QObject *parent)
     : QObject(parent)
-    , bKeepRetrying(false)
+    , bAutoReconnect(false)
     , nPort(0)
-    , mySocket(new TcpSocketThreadable(parent))
+    , mySocket(new TcpSocketThreadable(nullptr))
 {
     setupSignalsAndSlots();
 
@@ -18,14 +18,20 @@ ChannelSocketClient::ChannelSocketClient(QObject *parent)
 
 ChannelSocketClient::~ChannelSocketClient()
 {
-    bKeepRetrying = false;
+    bAutoReconnect = false;
 
     Q_EMIT disconnectSocket();
 
-    MemoryUtils::deletePointer(mySocket);
+    if (mySocket) {
+        mySocket->deleteLater();
+        mySocket = nullptr;
+    }
 
     myWorkerThread.quit();
-    myWorkerThread.wait(200);
+    if (!myWorkerThread.wait(1000)) {
+        myWorkerThread.terminate();
+        myWorkerThread.wait();
+    }
 }
 
 bool ChannelSocketClient::connect(const QString &szIpAddress, const QString &szPort)
@@ -47,14 +53,14 @@ bool ChannelSocketClient::connect(const QString &szIpAddress, const QString &szP
 
 }
 
-void ChannelSocketClient::setNeverDies(bool bNeverDies)
+void ChannelSocketClient::setAutoReconnect(bool bAutoReconnect)
 {
-    this->bKeepRetrying = bNeverDies;
+    this->bAutoReconnect = bAutoReconnect;
 }
 
 void ChannelSocketClient::disconnectAndStopRetries()
 {
-    bKeepRetrying = false;
+    bAutoReconnect = false;
     clearIpAndPort(true);
 
     Q_EMIT disconnectSocket();
@@ -63,7 +69,7 @@ void ChannelSocketClient::disconnectAndStopRetries()
 void ChannelSocketClient::clearIpAndPort(bool bForce)
 {
     if (bForce == true
-        || bKeepRetrying == false) {
+        || bAutoReconnect == false) {
 
         szIpAddress.clear();
         nPort = 0;
@@ -91,7 +97,7 @@ void ChannelSocketClient::setupSignalsAndSlots()
 
 void ChannelSocketClient::reconnectSocket()
 {
-    if (bKeepRetrying == true) {
+    if (bAutoReconnect == true) {
         Q_EMIT connectSocket(this->szIpAddress, this->nPort);
     }
 }
@@ -145,7 +151,6 @@ void ChannelSocketClient::socketStateChanged(QAbstractSocket::SocketState eSocke
             break;
 
         case QAbstractSocket::ClosingState:
-            reconnectSocket();
             break;
     }
 }
@@ -156,34 +161,13 @@ void ChannelSocketClient::socketError(QAbstractSocket::SocketError eSocketError)
         return;
     }
 
-    Q_EMIT connectionError(mySocket->error(), mySocket->errorString());
+    // Use the error information passed by the signal if possible,
+    // or rely on the fact that QAbstractSocket signals often provide enough context.
+    // However, TcpSocketThreadable is a QTcpSocket, so we can't easily get errorString
+    // without cross-thread access if we didn't pass it in the signal.
+    // In Qt, socketError signal actually passes the error.
+    // To be safe and avoid cross-thread access to mySocket from the UI thread:
+    Q_EMIT connectionError(static_cast<int>(eSocketError), tr("Socket error occurred"));
 
-    switch (eSocketError) {
-        case QAbstractSocket::ConnectionRefusedError:
-        case QAbstractSocket::RemoteHostClosedError:
-        case QAbstractSocket::HostNotFoundError:
-        case QAbstractSocket::SocketAccessError:
-        case QAbstractSocket::SocketResourceError:
-        case QAbstractSocket::SocketTimeoutError:
-        case QAbstractSocket::DatagramTooLargeError:
-        case QAbstractSocket::NetworkError:
-        case QAbstractSocket::AddressInUseError:
-        case QAbstractSocket::SocketAddressNotAvailableError:
-        case QAbstractSocket::UnsupportedSocketOperationError:
-        case QAbstractSocket::UnfinishedSocketOperationError:
-        case QAbstractSocket::ProxyAuthenticationRequiredError:
-        case QAbstractSocket::SslHandshakeFailedError:
-        case QAbstractSocket::ProxyConnectionRefusedError:
-        case QAbstractSocket::ProxyConnectionClosedError:
-        case QAbstractSocket::ProxyConnectionTimeoutError:
-        case QAbstractSocket::ProxyNotFoundError:
-        case QAbstractSocket::ProxyProtocolError:
-        case QAbstractSocket::OperationError:
-        case QAbstractSocket::SslInternalError:
-        case QAbstractSocket::SslInvalidUserDataError:
-        case QAbstractSocket::TemporaryError:
-        case QAbstractSocket::UnknownSocketError:
-            reconnectSocket();
-            break;
-    }
+    // Reconnection is handled by UnconnectedState in socketStateChanged
 }

@@ -653,7 +653,7 @@ void LoggerTableProxyModel::parseFile(const QString &szFilename)
 
         setSourceModel(myItemModel);
 
-        Q_EMIT fileParsingResult(GlobalConstants::SUCCESS, QFileInfo(szFilename).fileName());
+        Q_EMIT fileParsingResult(GlobalConstants::SUCCESS, szFilename);
 
     } else {
         Q_EMIT fileParsingResult(GlobalConstants::ERROR);

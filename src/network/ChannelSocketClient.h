@@ -19,7 +19,7 @@ public:
 
     bool connect(const QString &szIpAddress, const QString &szPort);
 
-    void setNeverDies(bool bNeverDies);
+    void setAutoReconnect(bool bAutoReconnect);
 
     void disconnectAndStopRetries();
 
@@ -28,7 +28,7 @@ public:
 private:
     void setupSignalsAndSlots();
 
-    bool                    bKeepRetrying;
+    bool                    bAutoReconnect;
 
     QString                 szIpAddress;
     quint16                 nPort;

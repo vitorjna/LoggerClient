@@ -75,7 +75,7 @@ private:
     void setupShortcuts();
     void loadSettings();
 
-    void setLogWidgetMode(const LogMode eMode, const QString &szText = QString(), bool bForce = false);
+    void setLogWidgetMode(const LogMode eMode, bool bForce = false);
 
     void selectFocus();
     void updateButtonsRowCountDependent(LogMode eNewMode = COUNT_LOG_MODE);
@@ -95,6 +95,7 @@ private:
     bool                    bUsingCustomColumnWidth;
     LogMode                 eCurrentMode;
     QString                 szSavedLogFile;
+    QString                 szOpenedLogFile;
     bool                    bOpenFileAfterSavingPending;
     bool                    bIsAtBottom;
     QPersistentModelIndex   mySavedModelIndex;
@@ -108,6 +109,7 @@ private:
     NetworkConnectionWidget *myServerConnectionWidget{};
 
     QPushButton             *buttonOpenFile{};
+    QPushButton             *buttonReloadFile{};
 
     LoggerPatternWidget     *myLoggerPatternWidget{};
 
@@ -132,6 +134,7 @@ protected Q_SLOTS:
 
     void buttonOpenFileClicked(bool bButtonState);
     void buttonOpenFileResult(const QString &szFilename);
+    void buttonReloadFileClicked();
     void fileParsingResult(const int nResult, const QString &szFilename);
 
     void pasteText();
@@ -196,4 +199,3 @@ private:
 #endif
 
 };
-
