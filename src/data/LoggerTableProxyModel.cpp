@@ -303,7 +303,8 @@ void LoggerTableProxyModel::fillLoggerSeverityNames()
     szaLoggerSeverityNames[LoggerEnum::TRACE]              = QStringLiteral("TRACE");
     szaLoggerSeverityNames[LoggerEnum::DEBUG_L]            = QStringLiteral("DEBUG");
     szaLoggerSeverityNames[LoggerEnum::INFO]               = QStringLiteral("INFO");
-    szaLoggerSeverityNames[LoggerEnum::WARNING]            = QStringLiteral("WARN");
+    szaLoggerSeverityNames[LoggerEnum::WARNING]            = QStringLiteral("WARNING");
+    szaLoggerSeverityNames[LoggerEnum::WARN]               = QStringLiteral("WARN");
     szaLoggerSeverityNames[LoggerEnum::ERROR_L]            = QStringLiteral("ERROR");
     szaLoggerSeverityNames[LoggerEnum::FATAL]              = QStringLiteral("FATAL");
 //    szaLoggerSeverityNames[LoggerEnum::NONE]               = QStringLiteral("NONE");

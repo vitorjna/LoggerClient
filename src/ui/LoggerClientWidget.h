@@ -8,6 +8,7 @@
 #include <QFileDialog>
 #include <QGridLayout>
 #include <QHeaderView>
+#include <QCheckBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
@@ -62,6 +63,8 @@ public:
 
     void setStyleSheet(const QString &szStyleSheet);
 
+    void openLogFile(const QString &szFilename);
+
 protected:
     void saveWindowPosition();
 
@@ -69,6 +72,7 @@ protected:
 
 private:
     static const int CLEAR_UNDO_TIMEOUT_MS = 5000; // 5 seconds for undo
+    static const int FILE_AUTO_RELOAD_PERIOD_MS = 5000; // 5 seconds
 
     void setupUI();
     void setupSignalsAndSlots();
@@ -110,6 +114,8 @@ private:
 
     QPushButton             *buttonOpenFile{};
     QPushButton             *buttonReloadFile{};
+    QCheckBox               *checkBoxAutoReload{};
+    QTimer                  *myTimerAutoReload{};
 
     LoggerPatternWidget     *myLoggerPatternWidget{};
 

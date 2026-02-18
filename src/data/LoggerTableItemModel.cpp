@@ -35,6 +35,7 @@ QColor LoggerTableItemModel::getColorForLevel(const QString &szLevel)
             return myColorInfo;
 
         case LoggerEnum::WARNING:
+        case LoggerEnum::WARN:
             return myColorWarning;
 
         case LoggerEnum::ERROR_L:

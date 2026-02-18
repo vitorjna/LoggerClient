@@ -7,7 +7,6 @@
 #include <QApplication>
 #include <QDebug>
 
-#include "tests.h"
 #include "application/GlobalConstants.h"
 #include "ui/LoggerClientWidget.h"
 #include "ui/ToastNotificationWidget.h"
@@ -29,16 +28,29 @@ int main(int argc, char **argv)
 
     // QGuiApplication::setAttribute(Qt::AA_UseHighDpiPixmaps);
 
-//    Tests::run();
-
     registerMetatypes();
 
     QApplication loggerClient(argc, argv);
     loggerClient.setStyle("Fusion");
 
     LoggerClientWidget myLoggerClientWidget;
+
+    QString szFileName;
+
+    for (int nIndex = 1; nIndex < argc; ++nIndex) {
+        QString szArg = QString::fromLocal8Bit(argv[nIndex]);
+
+        if (szArg == "-file" && nIndex + 1 < argc) {
+            szFileName = QString::fromLocal8Bit(argv[++nIndex]);
+        }
+    }
+
+    if (szFileName.isEmpty() == false) {
+        std::cout << "Opening file: " << szFileName.toLocal8Bit().constData() << std::endl;
+        myLoggerClientWidget.openLogFile(szFileName);
+    }
+
     myLoggerClientWidget.show();
 
     return loggerClient.exec();
 }
-

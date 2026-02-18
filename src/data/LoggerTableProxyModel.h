@@ -27,6 +27,7 @@ enum LoggerSeverity {
     DEBUG_L,
     INFO,
     WARNING,
+    WARN, // Some loggers use "warn", instead of "warning"
     ERROR_L,
     FATAL,
 //    NONE,

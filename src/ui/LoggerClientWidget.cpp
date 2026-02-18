@@ -24,6 +24,7 @@
 //TODO add button to reset patterns to default values
 
 const int LoggerClientWidget::CLEAR_UNDO_TIMEOUT_MS;
+const int LoggerClientWidget::FILE_AUTO_RELOAD_PERIOD_MS;
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
@@ -35,6 +36,7 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     , mySavedModelIndex()
     , myTimerUndoClear(new QTimer(this))
     , bIsClearPending(false)
+    , myTimerAutoReload(new QTimer(this))
     , myOptionsWidget(new OptionsWidget(this)) //loads current settings on construction. Should load when calling method, but it's good enough for now
 {
 #ifdef DEBUG_STUFF
@@ -44,7 +46,7 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     myTimerDebouncing = new QTimer(this);
     myTimerDebouncing->setSingleShot(true);
     myTimerDebouncing->setInterval(250);
-    connect(myTimerDebouncing, &QTimer::timeout, this, [=](){ saveWindowPosition(); });
+    connect(myTimerDebouncing, &QTimer::timeout, this, [ = ]() { saveWindowPosition(); });
 
     this->hide();
 
@@ -115,11 +117,15 @@ void LoggerClientWidget::setupUI()
                 buttonReloadFile->setText(tr("&Reload"));
                 buttonReloadFile->setVisible(false);
 
+                checkBoxAutoReload = new QCheckBox(tr("Auto"), this);
+                checkBoxAutoReload->setVisible(false);
+
                 buttonOpenFile = new QPushButton(this);
                 buttonOpenFile->setCheckable(true);
             }
 
             myTopLayout->addWidget(buttonReloadFile);
+            myTopLayout->addWidget(checkBoxAutoReload);
             myTopLayout->addWidget(buttonOpenFile);
         }
         myMainLayout->addLayout(myTopLayout);
@@ -139,7 +145,7 @@ void LoggerClientWidget::setupUI()
                 //TODO put these buttons on different places
                 //TODO place filter in search box so it can be edited
                 pushButtonResizeColumns = new QPushButton(this);
-                pushButtonResizeColumns->setText(tr("&Resize"));
+                pushButtonResizeColumns->setText(tr("Re&size"));
                 pushButtonResizeColumns->setEnabled(false);
 
                 pushButtonClearTable = new QPushButton(this);
@@ -272,6 +278,16 @@ void LoggerClientWidget::setupSignalsAndSlots()
             this,                       SLOT(buttonOpenFileClicked(bool)));
 
     connect(buttonReloadFile,           &QPushButton::clicked,
+            this,                       &LoggerClientWidget::buttonReloadFileClicked);
+
+    connect(checkBoxAutoReload,         &QCheckBox::toggled,
+    this,                       [ this ] (bool checked) {
+        checked ?
+        myTimerAutoReload->start(FILE_AUTO_RELOAD_PERIOD_MS) :
+        myTimerAutoReload->stop();
+    });
+
+    connect(myTimerAutoReload,          &QTimer::timeout,
             this,                       &LoggerClientWidget::buttonReloadFileClicked);
 
     connect(pushButtonSaveToFile,       SIGNAL(triggered(QAction *)),
@@ -453,6 +469,8 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, bool bForce)
             buttonOpenFile->setChecked(false);
             buttonOpenFile->setText(tr("Open &log file"));
             buttonReloadFile->setVisible(false);
+            checkBoxAutoReload->setVisible(false);
+            myTimerAutoReload->stop();
             break;
 
         case LoggerClientWidget::CLIPBOARD:
@@ -466,6 +484,8 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, bool bForce)
             buttonOpenFile->setChecked(false);
             buttonOpenFile->setText(tr("Open &log file"));
             buttonReloadFile->setVisible(false);
+            checkBoxAutoReload->setVisible(false);
+            myTimerAutoReload->stop();
             break;
 
         case LoggerClientWidget::FILE:
@@ -479,6 +499,12 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, bool bForce)
             buttonOpenFile->setChecked(true);
             buttonOpenFile->setText("C&lose " + QFileInfo(szOpenedLogFile).fileName());
             buttonReloadFile->setVisible(true);
+            checkBoxAutoReload->setVisible(true);
+
+            if (checkBoxAutoReload->isChecked()) {
+                myTimerAutoReload->start();
+            }
+
             break;
 
         case LoggerClientWidget::SERVER_CONNECTING: {
@@ -785,13 +811,28 @@ void LoggerClientWidget::buttonOpenFileClicked(bool bButtonState)
 
 void LoggerClientWidget::buttonOpenFileResult(const QString &szFilename)
 {
+    openLogFile(szFilename);
+}
+
+void LoggerClientWidget::openLogFile(const QString &szFilename)
+{
     Q_EMIT parseFile(szFilename);
 }
 
 void LoggerClientWidget::buttonReloadFileClicked()
 {
     if (szOpenedLogFile.isEmpty() == false) {
-        savedSelectedIndex();
+        //If scroll at bottom, we want to keep it at bottom after reload
+        if (myTableView->verticalScrollBar()->value() == myTableView->verticalScrollBar()->maximum()
+            || myTableView->verticalScrollBar()->isVisible() == false) {
+            bIsAtBottom = true;
+            mySavedModelIndex = QPersistentModelIndex();
+
+        } else {
+            bIsAtBottom = false;
+            savedSelectedIndex();
+        }
+
         Q_EMIT parseFile(szOpenedLogFile);
     }
 }
@@ -807,13 +848,17 @@ void LoggerClientWidget::fileParsingResult(const int nResult, const QString &szF
             QModelIndex newProxyIndex = myProxyModel->mapFromSource(mySavedModelIndex);
 
             if (newProxyIndex.isValid()) {
-                QApplication::processEvents(QEventLoop::WaitForMoreEvents); // update the tableview before scrolling
+                QApplication::processEvents(QEventLoop::ExcludeUserInputEvents); // update the tableview before scrolling
                 myTableView->setCurrentIndex(newProxyIndex);
                 myTableView->scrollTo(newProxyIndex, QAbstractItemView::EnsureVisible);
             }
 
             // Clear the preserved index after attempting restoration
             mySavedModelIndex = QPersistentModelIndex();
+
+        } else if (bIsAtBottom == true) {
+            QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            myTableView->scrollToBottom();
         }
 
     } else {
