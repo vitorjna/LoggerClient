@@ -7,11 +7,9 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QFile>
-#include <QFileInfo>
 #include <QRegularExpression>
 #include <QSortFilterProxyModel>
 #include <QStandardItem>
-#include <QThread>
 
 #include "application/GlobalConstants.h"
 #include "interface/IntMutexable.h"
@@ -88,9 +86,9 @@ protected:
 
 private:
     struct patternData {
-        LoggerEnum::LoggerPattern eCurrentPattern{LoggerEnum::COUNT_LOGGER_PATTERN};    // current pattern
-        int nDataStartOffset{-1};                                                       // offset for start index (to account for extra separators between elements)
-        QChar cEndSeparator{'\0'};                                                      // char of the end separator for this pattern. For the last group, separator is '\0' (to the end of the message)
+        LoggerEnum::LoggerPattern eCurrentPattern{LoggerEnum::PATTERN_MESSAGE}; // current pattern (using message as default, as it's the most common and last pattern, so it would be the most forgiving in case of parsing errors)
+        int nDataStartOffset{-1};                                               // offset for start index (to account for extra separators between elements)
+        QChar cEndSeparator{'\0'};                                              // char of the end separator for this pattern. For the last group, separator is '\0' (to the end of the message)
 
         void print() const {
             qDebug() << "patternData: "

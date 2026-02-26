@@ -133,12 +133,16 @@ void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::Scrol
 {
     // qDebug() << index.row() << index.column();
 
+    // for the last column, we don't want to scroll horizontally, or the whole table will move to the right to ensure the end of the column is in view, which is not what we want (for that, we have the horizontal scroll bar)
     if (hint == QAbstractItemView::EnsureVisible
-        && index.column() == index.model()->columnCount() - 1) { //last column
-        return;
-    }
+        && index.column() == index.model()->columnCount() - 1) {
 
-    QTableView::scrollTo(index, hint);
+        QModelIndex adjustedIndex = index.sibling(index.row(), index.model()->columnCount() - 2);
+        QTableView::scrollTo(adjustedIndex, hint);
+
+    } else {
+        QTableView::scrollTo(index, hint);
+    }
 }
 
 void LoggerTreeView::keyPressEvent(QKeyEvent *myKeyEvent)

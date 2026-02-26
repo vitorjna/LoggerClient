@@ -24,6 +24,7 @@
 
 #include "application/GlobalConstants.h"
 #include "interface/IntMutexable.h"
+#include "util/TimeUtils.h"
 
 class ChannelSocketClient;
 class KeywordHighlightWidget;
@@ -95,7 +96,7 @@ private:
     void savedSelectedIndex();
 
     ///properties
-    const QString           szWindowTitle = QStringLiteral("Logger Client");
+    const QString           szWindowTitle = QStringLiteral("Logger Client") + " (" + TimeUtils::getCompileDate() + ")";
     bool                    bUsingCustomColumnWidth;
     LogMode                 eCurrentMode;
     QString                 szSavedLogFile;
@@ -180,6 +181,7 @@ private Q_SLOTS:
 
     void fontSizeChanged(const int nValue);
     void rowHeightBiasChanged(int nValue = INT_MAX);
+    void fileReloadIntervalChanged(const int nValue);
 
     void finalizeClearTable();
     void undoClearTable();

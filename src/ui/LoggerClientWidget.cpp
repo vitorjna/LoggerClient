@@ -281,10 +281,14 @@ void LoggerClientWidget::setupSignalsAndSlots()
             this,                       &LoggerClientWidget::buttonReloadFileClicked);
 
     connect(checkBoxAutoReload,         &QCheckBox::toggled,
-    this,                       [ this ] (bool checked) {
-        checked ?
-        myTimerAutoReload->start(FILE_AUTO_RELOAD_PERIOD_MS) :
-        myTimerAutoReload->stop();
+    this,                       [ this ] (bool bChecked) {
+        if (bChecked) {
+            const int nReloadIntervalMs = AppSettings::getValue(AppSettings::KEY_FILE_RELOAD_INTERVAL, AppSettings::getDefaultValue(AppSettings::KEY_FILE_RELOAD_INTERVAL)).toInt() * 1000;
+            myTimerAutoReload->start(nReloadIntervalMs);
+
+        } else {
+            myTimerAutoReload->stop();
+        }
     });
 
     connect(myTimerAutoReload,          &QTimer::timeout,
@@ -360,6 +364,9 @@ void LoggerClientWidget::setupSignalsAndSlots()
 
     connect(myOptionsWidget,            &OptionsWidget::rowHeightBiasChanged,
             this,                       &LoggerClientWidget::rowHeightBiasChanged);
+
+    connect(myOptionsWidget,            &OptionsWidget::fileReloadIntervalChanged,
+            this,                       &LoggerClientWidget::fileReloadIntervalChanged);
 
     //SEARCH
     connect(mySearchWidget,             &SearchWidget::searchTextChanged,
@@ -1245,6 +1252,13 @@ void LoggerClientWidget::rowHeightBiasChanged(int nValue)
     myTableView->verticalHeader()->setMinimumSectionSize(myTableView->fontMetrics().height() + 4 + nValue * 2);
     myTableView->verticalHeader()->setDefaultSectionSize(myTableView->verticalHeader()->minimumSectionSize());
     myTableView->verticalHeader()->setMaximumSectionSize(myTableView->verticalHeader()->minimumSectionSize());
+}
+
+void LoggerClientWidget::fileReloadIntervalChanged(const int nValue)
+{
+    if (myTimerAutoReload->isActive()) {
+        myTimerAutoReload->start(nValue * 1000);
+    }
 }
 
 void LoggerClientWidget::dragEnterEvent(QDragEnterEvent *myDragEvent)

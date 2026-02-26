@@ -36,6 +36,7 @@ const QString   GlobalConstants::SETTINGS_CODE_SOURCE_PROJECT       = QStringLit
 ///Other Options
 const QString   GlobalConstants::SETTINGS_FORMAT_EXPORTED_LOGS      = QStringLiteral("FormatExportedLogs");
 const QString   GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES   = QStringLiteral("LoggerServerAddresses");
+const QString   GlobalConstants::SETTINGS_FILE_RELOAD_INTERVAL      = QStringLiteral("FileReloadInterval");
 const QString   GlobalConstants::SETTINGS_KEYWORDS_HIGHLIGHT        = QStringLiteral("KeywordsHighlight");
 
 const QString   GlobalConstants::FILE_EXTENSION_CPP                 = QStringLiteral(".cpp");

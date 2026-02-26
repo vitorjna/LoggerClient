@@ -40,6 +40,9 @@ QVariant AppSettings::getDefaultValue(const AppSettings::SETTINGS eKey)
         case AppSettings::KEY_THEME_NAME:
             return QVariant("Dark Orange");
 
+        case AppSettings::KEY_FILE_RELOAD_INTERVAL:
+            return QVariant(5);
+
         case AppSettings::KEY_SERVER_IPv4:
         case AppSettings::KEY_SERVER_NAME:
         case AppSettings::KEY_SERVER_PORT:
@@ -85,6 +88,7 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
             return GlobalConstants::WIDGET_SOURCE_CODE;
 
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
+        case AppSettings::KEY_FILE_RELOAD_INTERVAL:
         case AppSettings::KEY_LOGGER_PATTERN_LIST:
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
         case AppSettings::KEY_KEYWORDS_HIGHLIGHT:
@@ -100,6 +104,9 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
     switch (eKey) {
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
             return GlobalConstants::SETTINGS_FORMAT_EXPORTED_LOGS;
+
+        case AppSettings::KEY_FILE_RELOAD_INTERVAL:
+            return GlobalConstants::SETTINGS_FILE_RELOAD_INTERVAL;
 
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
             return GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES;
