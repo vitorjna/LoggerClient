@@ -66,6 +66,8 @@ public:
 
     void openLogFile(const QString &szFilename);
 
+    void setupCommandLineArgs(const QString &szIp, const QString &szPort, const QString &szPattern);
+
 protected:
     void saveWindowPosition();
 

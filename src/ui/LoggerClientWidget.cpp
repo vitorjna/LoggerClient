@@ -826,6 +826,27 @@ void LoggerClientWidget::openLogFile(const QString &szFilename)
     Q_EMIT parseFile(szFilename);
 }
 
+void LoggerClientWidget::setupCommandLineArgs(const QString &szIp, const QString &szPort, const QString &szPattern)
+{
+    if (szPattern.isEmpty() == false) {
+        myLoggerPatternWidget->setPattern(szPattern);
+        myLoggerPatternWidget->setPatternName(tr("Custom Pattern"));
+    }
+
+    if (szIp.isEmpty() == false) {
+        myServerConnectionWidget->setIp(szIp);
+    }
+
+    if (szPort.isEmpty() == false) {
+        myServerConnectionWidget->setPort(szPort);
+    }
+
+    if (szIp.isEmpty() == false && szPort.isEmpty() == false) {
+        myServerConnectionWidget->setName(tr("Custom Server"));
+        buttonConnectToServerToggled(true);
+    }
+}
+
 void LoggerClientWidget::buttonReloadFileClicked()
 {
     if (szOpenedLogFile.isEmpty() == false) {
