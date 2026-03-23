@@ -1,55 +1,59 @@
-name: Build Windows
+name: Build and Release LoggerClient
 
 on:
-  push:
-    branches: [ "main" ]
-    paths-ignore:
-      - 'README.md'
-      - 'LICENSE'
-      - '.gitignore'
-      - '.github/**'
-      - 'resources/**'
-      
-  pull_request:
-    branches: [ "main" ]    
-    paths-ignore:
-      - 'README.md'
-      - 'LICENSE'
-      - '.gitignore'
-      # - '.github/**'
-      - 'resources/**'
+  workflow_dispatch:
 
-env:
-  BUILD_TYPE: Release
-  
 jobs:
   build:
     runs-on: windows-latest
 
     steps:
-    - name: Checkout Project
-      uses: actions/checkout@v4.2.2
-      
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        submodules: recursive
+
     - name: Install Qt
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.8.3'
-        host: 'windows'
-        target: 'desktop'
-        arch: 'win64_mingw'
-        tools: 'tools_ninja tools_mingw1310'
-        cache: true
-      
-    # - name: Build Project
-    #   uses: threeal/cmake-action@v2.1.0
-    
+        version: '6.9.0'
+        # host: 'windows'
+        # target: 'desktop'
+        arch: 'win64_msvc2022_64'
+        cache: 'true'
+
+    - name: Setup Developer Command Prompt for MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Configure CMake
-      # env:
-        # CMAKE_PREFIX_PATH: ${{env.QT_ROOT_DIR}}
-        # CC: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\gcc.exe
-        # CXX: ${{env.IQTA_TOOLS}}\mingw1310_64\bin\g++.exe
-        # Qt6_DIR: ${{env.QT_ROOT_DIR}}\lib\cmake\Qt6
-      run: cmake -S ${{github.workspace}}/src -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DCMAKE_PREFIX_PATH="${{env.Qt6_Dir}}" -G "Ninja" -B '${{github.workspace}}/build'
-      
-    - name: Build
-      run: cmake --build '${{github.workspace}}/build' --target LoggerClient
+      run: cmake -S src -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build LoggerClient
+      run: cmake --build build --config Release
+
+    - name: Deploy Qt Dependencies
+      run: |
+        mkdir package
+        copy build/LoggerClient.exe package/
+        copy resources/* package/
+        windeployqt --release package/LoggerClient.exe
+      continue-on-error: false
+
+    - name: Get Current Date
+      id: date
+      run: echo "date=$(Get-Date -Format 'yyyyMMdd')" >> $env:GITHUB_OUTPUT
+
+    - name: Create 7z Package
+      run: 7z a -t7z -mx=9 LoggerClient-Release-${{ steps.date.outputs.date }}.7z ./package/*
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.date.outputs.date }}
+        name: ${{ steps.date.outputs.date }}
+        draft: false
+        prerelease: false
+        files: LoggerClient-Release-${{ steps.date.outputs.date }}.7z
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

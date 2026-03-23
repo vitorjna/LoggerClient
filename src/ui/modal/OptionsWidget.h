@@ -42,6 +42,8 @@ private:
     QSpinBox                    *spinBoxFontSize{};
     QSpinBox                    *spinBoxRowHeightBias{};
 
+    QSpinBox                    *spinBoxFileReloadInterval{};
+
     QCheckBox                   *checkBoxFormatExportedLogs{};
 
     QComboBox                   *comboBoxSupportedLanguages{};
@@ -60,12 +62,15 @@ Q_SIGNALS:
     void aboutToHide();
     void fontSizeChanged(const int nValue);
     void rowHeightBiasChanged(const int nValue);
+    void fileReloadIntervalChanged(const int nValue);
 
 protected Q_SLOTS:
     void themeSelectionChanged(const QString &szNewTheme) const;
 
     void fontSizeChangedSlot(const int nValue);
     void rowHeightBiasChangedSlot(const int nValue);
+
+    void fileReloadIntervalChangedSlot(const int nValue);
 
     void formatExportedLogsChanged(Qt::CheckState eState) const;
 

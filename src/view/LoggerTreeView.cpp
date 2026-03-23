@@ -110,16 +110,39 @@ int LoggerTreeView::getColumnMaxCharCount(int nCol, int nRowTop, int nRowBottom,
     return static_cast<int>(nMaxSize * LoggerTableProxyModel::getColumnWidthBias(static_cast<LoggerEnum::Columns>(nCol)));
 }
 
-void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)
+void LoggerTreeView::copySelectedData(int nColumnIndex)
 {
-    qDebug() << index.row() << index.column();
-
-    if (hint == QAbstractItemView::EnsureVisible
-        && index.column() == index.model()->columnCount() - 1) { //last column
+    if (selectedIndexes().isEmpty() == true) {
         return;
     }
 
-    QTableView::scrollTo(index, hint);
+    QString szText;
+
+    const QItemSelection &myItemSelection = selectionModel()->selection();
+
+    for (const QItemSelectionRange &mySelectionRange : myItemSelection) {
+        szText.append(this->toString(mySelectionRange.top(), mySelectionRange.bottom(), nColumnIndex, nColumnIndex));
+    }
+
+    QApplication::clipboard()->setText(szText);
+
+    ToastNotificationWidget::showMessage(this, tr("Column data copied to clipboard"), ToastNotificationWidget::SUCCESS, 1500);
+}
+
+void LoggerTreeView::scrollTo(const QModelIndex &index, QAbstractItemView::ScrollHint hint)
+{
+    // qDebug() << index.row() << index.column();
+
+    // for the last column, we don't want to scroll horizontally, or the whole table will move to the right to ensure the end of the column is in view, which is not what we want (for that, we have the horizontal scroll bar)
+    if (hint == QAbstractItemView::EnsureVisible
+        && index.column() == index.model()->columnCount() - 1) {
+
+        QModelIndex adjustedIndex = index.sibling(index.row(), index.model()->columnCount() - 2);
+        QTableView::scrollTo(adjustedIndex, hint);
+
+    } else {
+        QTableView::scrollTo(index, hint);
+    }
 }
 
 void LoggerTreeView::keyPressEvent(QKeyEvent *myKeyEvent)

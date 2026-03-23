@@ -21,7 +21,11 @@ public:
     static int64_t getSavedTimeMilliseconds();
     static int64_t getSavedTimeMicroseconds();
 
+    static QString getCompileDate();
+
 private:
+    static QString computeCompileDate();
+
     static QElapsedTimer *myTimer;
 
     static int64_t llTimeCount;

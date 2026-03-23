@@ -8,6 +8,7 @@
 #include <QFileDialog>
 #include <QGridLayout>
 #include <QHeaderView>
+#include <QCheckBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
@@ -23,6 +24,7 @@
 
 #include "application/GlobalConstants.h"
 #include "interface/IntMutexable.h"
+#include "util/TimeUtils.h"
 
 class ChannelSocketClient;
 class KeywordHighlightWidget;
@@ -62,18 +64,25 @@ public:
 
     void setStyleSheet(const QString &szStyleSheet);
 
+    void openLogFile(const QString &szFilename);
+
+    void setupCommandLineArgs(const QString &szIp, const QString &szPort, const QString &szPattern);
+
 protected:
     void saveWindowPosition();
 
+    QTimer *myTimerDebouncing = nullptr;
+
 private:
     static const int CLEAR_UNDO_TIMEOUT_MS = 5000; // 5 seconds for undo
+    static const int FILE_AUTO_RELOAD_PERIOD_MS = 5000; // 5 seconds
 
     void setupUI();
     void setupSignalsAndSlots();
     void setupShortcuts();
     void loadSettings();
 
-    void setLogWidgetMode(const LogMode eMode, const QString &szText = QString(), bool bForce = false);
+    void setLogWidgetMode(const LogMode eMode, bool bForce = false);
 
     void selectFocus();
     void updateButtonsRowCountDependent(LogMode eNewMode = COUNT_LOG_MODE);
@@ -89,10 +98,11 @@ private:
     void savedSelectedIndex();
 
     ///properties
-    const QString           szWindowTitle = QStringLiteral("Logger Client");
+    const QString           szWindowTitle = QStringLiteral("Logger Client") + " (" + TimeUtils::getCompileDate() + ")";
     bool                    bUsingCustomColumnWidth;
     LogMode                 eCurrentMode;
     QString                 szSavedLogFile;
+    QString                 szOpenedLogFile;
     bool                    bOpenFileAfterSavingPending;
     bool                    bIsAtBottom;
     QPersistentModelIndex   mySavedModelIndex;
@@ -106,6 +116,9 @@ private:
     NetworkConnectionWidget *myServerConnectionWidget{};
 
     QPushButton             *buttonOpenFile{};
+    QPushButton             *buttonReloadFile{};
+    QCheckBox               *checkBoxAutoReload{};
+    QTimer                  *myTimerAutoReload{};
 
     LoggerPatternWidget     *myLoggerPatternWidget{};
 
@@ -130,6 +143,7 @@ protected Q_SLOTS:
 
     void buttonOpenFileClicked(bool bButtonState);
     void buttonOpenFileResult(const QString &szFilename);
+    void buttonReloadFileClicked();
     void fileParsingResult(const int nResult, const QString &szFilename);
 
     void pasteText();
@@ -169,6 +183,7 @@ private Q_SLOTS:
 
     void fontSizeChanged(const int nValue);
     void rowHeightBiasChanged(int nValue = INT_MAX);
+    void fileReloadIntervalChanged(const int nValue);
 
     void finalizeClearTable();
     void undoClearTable();
@@ -194,4 +209,3 @@ private:
 #endif
 
 };
-

@@ -27,7 +27,9 @@ QVariant AppSettings::getDefaultValue(const AppSettings::SETTINGS eKey)
             return QVariant("C++" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %t [%c{1}] %p - %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
                             + "C++ exported" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %t %c{1} %p %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
                             + "Java" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d [%c{1}] %p - %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
-                            + "Other" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %c{1} [%c{1}] %p - %m");
+                            + "Java exported" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d %c{1} %p %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
+                            + "Python" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%d - %c - %p - %m" + GlobalConstants::SEPARATOR_SETTINGS_LIST
+                            + "Flat" + GlobalConstants::SEPARATOR_SETTINGS_LIST_2 + "%m");
 
         case AppSettings::KEY_FONT_SIZE:
             return QVariant(9);
@@ -37,6 +39,9 @@ QVariant AppSettings::getDefaultValue(const AppSettings::SETTINGS eKey)
 
         case AppSettings::KEY_THEME_NAME:
             return QVariant("Dark Orange");
+
+        case AppSettings::KEY_FILE_RELOAD_INTERVAL:
+            return QVariant(5);
 
         case AppSettings::KEY_SERVER_IPv4:
         case AppSettings::KEY_SERVER_NAME:
@@ -83,6 +88,7 @@ QString AppSettings::getKeyGroup(const AppSettings::SETTINGS eKey)
             return GlobalConstants::WIDGET_SOURCE_CODE;
 
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
+        case AppSettings::KEY_FILE_RELOAD_INTERVAL:
         case AppSettings::KEY_LOGGER_PATTERN_LIST:
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
         case AppSettings::KEY_KEYWORDS_HIGHLIGHT:
@@ -98,6 +104,9 @@ QString AppSettings::getKeyString(const AppSettings::SETTINGS eKey)
     switch (eKey) {
         case AppSettings::KEY_FORMAT_EXPORTED_LOGS:
             return GlobalConstants::SETTINGS_FORMAT_EXPORTED_LOGS;
+
+        case AppSettings::KEY_FILE_RELOAD_INTERVAL:
+            return GlobalConstants::SETTINGS_FILE_RELOAD_INTERVAL;
 
         case AppSettings::KEY_LOGGER_SERVER_ADDRESSES:
             return GlobalConstants::SETTINGS_LOGGER_SERVER_ADDRESSES;

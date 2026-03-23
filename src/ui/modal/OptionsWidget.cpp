@@ -74,15 +74,26 @@ void OptionsWidget::setupUi()
     ++nCurrentRow;
 
 
+    QGroupBox *fileHandlingGroup = new QGroupBox(tr("File Handling"));
+    fileHandlingGroup->setFlat(true);
+
+    QGridLayout *fileHandlingLayout = new QGridLayout(fileHandlingGroup);
     {
         QLabel *labelFormatExportedLogs = new QLabel(tr("Format exported logs"), this);
-
         checkBoxFormatExportedLogs = new QCheckBox(this);
 
-        myMainLayout->addWidget(labelFormatExportedLogs,    nCurrentRow, 0);
-        myMainLayout->addWidget(checkBoxFormatExportedLogs, nCurrentRow, 1);
-        myMainLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), nCurrentRow, 2);
+        QLabel *labelFileReloadInterval = new QLabel(tr("File reload interval (sec)"), this);
+        spinBoxFileReloadInterval = new QSpinBox(this);
+        spinBoxFileReloadInterval->setRange(1, 300);
+        spinBoxFileReloadInterval->setSingleStep(1);
+
+        fileHandlingLayout->addWidget(labelFormatExportedLogs,    nCurrentRow, 0);
+        fileHandlingLayout->addWidget(checkBoxFormatExportedLogs, nCurrentRow, 1);
+        fileHandlingLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::MinimumExpanding, QSizePolicy::Fixed), nCurrentRow, 2);
+        fileHandlingLayout->addWidget(labelFileReloadInterval,        nCurrentRow, 3);
+        fileHandlingLayout->addWidget(spinBoxFileReloadInterval,      nCurrentRow, 4);
     }
+    myMainLayout->addWidget(fileHandlingGroup, nCurrentRow, 0, 1, -1);
     ++nCurrentRow;
 
 
@@ -180,6 +191,9 @@ void OptionsWidget::setupSignalsAndSlots()
     connect(spinBoxRowHeightBias,                   static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), //there is an overload and the lambda connection cannot disambiguate
             this,                                   &OptionsWidget::rowHeightBiasChangedSlot);
 
+    connect(spinBoxFileReloadInterval,                  static_cast<void (QSpinBox::*)(int)>(&QSpinBox::valueChanged), //there is an overload and the lambda connection cannot disambiguate
+            this,                                   &OptionsWidget::fileReloadIntervalChangedSlot);
+
     connect(checkBoxFormatExportedLogs,             &QCheckBox::checkStateChanged,
             this,                                   &OptionsWidget::formatExportedLogsChanged);
 
@@ -227,6 +241,9 @@ void OptionsWidget::loadSettings()
 
     const int nRowBias = AppSettings::getValue(AppSettings::KEY_ROW_HEIGHT_BIAS, AppSettings::getDefaultValue(AppSettings::KEY_ROW_HEIGHT_BIAS)).toInt();
     spinBoxRowHeightBias->setValue(nRowBias);
+
+    const int nReloadInterval = AppSettings::getValue(AppSettings::KEY_FILE_RELOAD_INTERVAL, AppSettings::getDefaultValue(AppSettings::KEY_FILE_RELOAD_INTERVAL)).toInt();
+    spinBoxFileReloadInterval->setValue(nReloadInterval);
 
     const bool bFormatExportedLogs = AppSettings::getValue(AppSettings::KEY_FORMAT_EXPORTED_LOGS, false).toBool();
     checkBoxFormatExportedLogs->setChecked(bFormatExportedLogs);
@@ -300,6 +317,13 @@ void OptionsWidget::rowHeightBiasChangedSlot(const int nValue)
     Q_EMIT rowHeightBiasChanged(nValue);
 
     AppSettings::setValue(AppSettings::KEY_ROW_HEIGHT_BIAS, nValue);
+}
+
+void OptionsWidget::fileReloadIntervalChangedSlot(const int nValue)
+{
+    Q_EMIT fileReloadIntervalChanged(nValue);
+
+    AppSettings::setValue(AppSettings::KEY_FILE_RELOAD_INTERVAL, nValue);
 }
 
 void OptionsWidget::formatExportedLogsChanged(Qt::CheckState eState) const

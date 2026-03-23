@@ -148,8 +148,23 @@ QList<QAction *> *LoggerTableProxyModel::generateActionsForIndex(const QModelInd
             break;
         }
 
-        case LoggerEnum::COLUMN_MESSAGE:
+        case LoggerEnum::COLUMN_MESSAGE: {
+            const QString szMessage = myModelIndex.data(Qt::DisplayRole).toString();
+
+            if (szMessage.isEmpty() == true) {
+                break;
+            }
+
+            QAction *myActionFilter = new QAction(parent);
+            myActionFilter->setText(tr("Copy message data"));
+            myActionFilter->setData(myModelIndex.column());
+
+            connect(myActionFilter, SIGNAL(triggered(bool)), this, SLOT(menuActionClickedCopySelected(bool)));
+
+            myActionList->push_back(myActionFilter);
+
             break;
+        }
 
         case LoggerEnum::COUNT_TABLE_COLUMNS:
             break;
@@ -288,7 +303,8 @@ void LoggerTableProxyModel::fillLoggerSeverityNames()
     szaLoggerSeverityNames[LoggerEnum::TRACE]              = QStringLiteral("TRACE");
     szaLoggerSeverityNames[LoggerEnum::DEBUG_L]            = QStringLiteral("DEBUG");
     szaLoggerSeverityNames[LoggerEnum::INFO]               = QStringLiteral("INFO");
-    szaLoggerSeverityNames[LoggerEnum::WARNING]            = QStringLiteral("WARN");
+    szaLoggerSeverityNames[LoggerEnum::WARNING]            = QStringLiteral("WARNING");
+    szaLoggerSeverityNames[LoggerEnum::WARN]               = QStringLiteral("WARN");
     szaLoggerSeverityNames[LoggerEnum::ERROR_L]            = QStringLiteral("ERROR");
     szaLoggerSeverityNames[LoggerEnum::FATAL]              = QStringLiteral("FATAL");
 //    szaLoggerSeverityNames[LoggerEnum::NONE]               = QStringLiteral("NONE");
@@ -396,7 +412,7 @@ QList<QStandardItem *> LoggerTableProxyModel::parseLogMessage(const QString &szR
                         break;
                 }
 
-                nDataStartIndex = static_cast<int>(nDataEndIndex + nExtraSeparatorsOffset + 1);
+                nDataStartIndex = static_cast<int>(nDataEndIndex + nExtraSeparatorsOffset);
             }
         }
     }
@@ -497,7 +513,7 @@ void LoggerTableProxyModel::updateLoggerPatternCache()
                 ++nPatternIndex;
                 break;
 
-            } else if (cPatternChar.isSpace() == false) { //skip other separator characters: [ | etc
+            } else { //skip other separator characters: [ | spaces, etc
                 ++nDataStartOffset;
             }
 
@@ -638,7 +654,7 @@ void LoggerTableProxyModel::parseFile(const QString &szFilename)
 
         setSourceModel(myItemModel);
 
-        Q_EMIT fileParsingResult(GlobalConstants::SUCCESS, QFileInfo(szFilename).fileName());
+        Q_EMIT fileParsingResult(GlobalConstants::SUCCESS, szFilename);
 
     } else {
         Q_EMIT fileParsingResult(GlobalConstants::ERROR);
@@ -655,7 +671,7 @@ void LoggerTableProxyModel::parseClipboard()
 
     QString szClipboardData = QApplication::clipboard()->text();
 
-#define DEBUG_SPEED
+// #define DEBUG_SPEED
 #ifdef DEBUG_SPEED
     TimeUtils::startTimer();
 #endif
@@ -792,6 +808,21 @@ void LoggerTableProxyModel::menuActionClickedOpenFile(bool bState)
             Q_EMIT showNotification(tr("Error opening file\n") + szFilenameFullPath + tr("\nin editor ") + SourceCodeHandler::getCurrentEditorName(), ToastNotificationWidget::ERROR, 3000);
         }
     }
+}
+
+void LoggerTableProxyModel::menuActionClickedCopySelected(bool bState)
+{
+    Q_UNUSED(bState)
+
+    QAction *mySenderAction = qobject_cast<QAction *>(sender());
+
+    if (mySenderAction == nullptr) {
+        return;
+    }
+
+    const int nColumnIndex = mySenderAction->data().toInt();
+
+    Q_EMIT copySelectedData(nColumnIndex);
 }
 
 void LoggerTableProxyModel::deleteRowsAbove(bool bState)

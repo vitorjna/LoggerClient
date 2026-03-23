@@ -12,7 +12,6 @@
 #include "ui/widget/SearchWidget.h"
 #include "util/FileUtils.h"
 #include "util/MemoryUtils.h"
-#include "util/TimeUtils.h"
 #include "view/LoggerTreeView.h"
 
 //TODO Bug: filter by one column. Then filter by other column, Clear Table button becomes disabled
@@ -20,13 +19,12 @@
 //TODO class filter and text search are mutually exclusive. Both act on setFilterRegExp
 //TODO open file and set breakpoint
 //TODO open multiple editor context menu
-//TODO right click on selected cells, copy only that column contents. Good to export XML from multiple lines
 //TODO right click with multiple lines selected: generate "filter by" action for all classes
-//TODO add default name for log file saving as text
 //TODO add TipWidget (NAM: you can copy and paste from the table. Paste in the format...). Auto hides itself by a checkbox in the OptionsWidget
 //TODO add button to reset patterns to default values
 
 const int LoggerClientWidget::CLEAR_UNDO_TIMEOUT_MS;
+const int LoggerClientWidget::FILE_AUTO_RELOAD_PERIOD_MS;
 
 LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     : QWidget(parent)
@@ -38,11 +36,17 @@ LoggerClientWidget::LoggerClientWidget(QWidget *parent)
     , mySavedModelIndex()
     , myTimerUndoClear(new QTimer(this))
     , bIsClearPending(false)
+    , myTimerAutoReload(new QTimer(this))
     , myOptionsWidget(new OptionsWidget(this)) //loads current settings on construction. Should load when calling method, but it's good enough for now
 {
 #ifdef DEBUG_STUFF
 //    initDebugFocusChanged();
 #endif
+
+    myTimerDebouncing = new QTimer(this);
+    myTimerDebouncing->setSingleShot(true);
+    myTimerDebouncing->setInterval(250);
+    connect(myTimerDebouncing, &QTimer::timeout, this, [ = ]() { saveWindowPosition(); });
 
     this->hide();
 
@@ -109,10 +113,19 @@ void LoggerClientWidget::setupUI()
             myTopLayout->addItem(new QSpacerItem(0, 0, QSizePolicy::Expanding, QSizePolicy::Fixed));
 
             {
+                buttonReloadFile = new QPushButton(this);
+                buttonReloadFile->setText(tr("&Reload"));
+                buttonReloadFile->setVisible(false);
+
+                checkBoxAutoReload = new QCheckBox(tr("Auto"), this);
+                checkBoxAutoReload->setVisible(false);
+
                 buttonOpenFile = new QPushButton(this);
                 buttonOpenFile->setCheckable(true);
             }
 
+            myTopLayout->addWidget(buttonReloadFile);
+            myTopLayout->addWidget(checkBoxAutoReload);
             myTopLayout->addWidget(buttonOpenFile);
         }
         myMainLayout->addLayout(myTopLayout);
@@ -132,7 +145,7 @@ void LoggerClientWidget::setupUI()
                 //TODO put these buttons on different places
                 //TODO place filter in search box so it can be edited
                 pushButtonResizeColumns = new QPushButton(this);
-                pushButtonResizeColumns->setText(tr("&Resize"));
+                pushButtonResizeColumns->setText(tr("Re&size"));
                 pushButtonResizeColumns->setEnabled(false);
 
                 pushButtonClearTable = new QPushButton(this);
@@ -264,6 +277,23 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(buttonOpenFile,             SIGNAL(clicked(bool)),
             this,                       SLOT(buttonOpenFileClicked(bool)));
 
+    connect(buttonReloadFile,           &QPushButton::clicked,
+            this,                       &LoggerClientWidget::buttonReloadFileClicked);
+
+    connect(checkBoxAutoReload,         &QCheckBox::toggled,
+    this,                       [ this ] (bool bChecked) {
+        if (bChecked) {
+            const int nReloadIntervalMs = AppSettings::getValue(AppSettings::KEY_FILE_RELOAD_INTERVAL, AppSettings::getDefaultValue(AppSettings::KEY_FILE_RELOAD_INTERVAL)).toInt() * 1000;
+            myTimerAutoReload->start(nReloadIntervalMs);
+
+        } else {
+            myTimerAutoReload->stop();
+        }
+    });
+
+    connect(myTimerAutoReload,          &QTimer::timeout,
+            this,                       &LoggerClientWidget::buttonReloadFileClicked);
+
     connect(pushButtonSaveToFile,       SIGNAL(triggered(QAction *)),
             this,                       SLOT(buttonClickedSaveToFile(QAction *)));
 
@@ -288,6 +318,9 @@ void LoggerClientWidget::setupSignalsAndSlots()
 
     connect(myProxyModel,               &LoggerTableProxyModel::filterStateChanged,
             this,                       &LoggerClientWidget::filterStateChanged);
+
+    connect(myProxyModel,               &LoggerTableProxyModel::copySelectedData,
+            myTableView,                &LoggerTreeView::copySelectedData);
 
     connect(this,                       &LoggerClientWidget::parseClipboard,
             myProxyModel,               &LoggerTableProxyModel::parseClipboard);
@@ -332,6 +365,9 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(myOptionsWidget,            &OptionsWidget::rowHeightBiasChanged,
             this,                       &LoggerClientWidget::rowHeightBiasChanged);
 
+    connect(myOptionsWidget,            &OptionsWidget::fileReloadIntervalChanged,
+            this,                       &LoggerClientWidget::fileReloadIntervalChanged);
+
     //SEARCH
     connect(mySearchWidget,             &SearchWidget::searchTextChanged,
             this,                       &LoggerClientWidget::searchTextChanged);
@@ -342,6 +378,9 @@ void LoggerClientWidget::setupSignalsAndSlots()
     connect(myKeywordHighlightWidget,   &KeywordHighlightWidget::keywordsChangedSignal,
             this,                       &LoggerClientWidget::keywordHighlightChanged);
 
+    // UNDO TIMER
+    connect(myTimerUndoClear,           &QTimer::timeout,
+            this,                       &LoggerClientWidget::finalizeClearTable);
 }
 
 void LoggerClientWidget::setupShortcuts()
@@ -409,7 +448,7 @@ void LoggerClientWidget::loadSettings()
     keywordHighlightChanged(myKeywordHighlightWidget->getKeywords());
 }
 
-void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &szText, bool bForce)
+void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, bool bForce)
 {
     // If a clear is pending when the mode changes, finalize it immediately
     if (bIsClearPending) {
@@ -436,6 +475,9 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             buttonOpenFile->setEnabled(true);
             buttonOpenFile->setChecked(false);
             buttonOpenFile->setText(tr("Open &log file"));
+            buttonReloadFile->setVisible(false);
+            checkBoxAutoReload->setVisible(false);
+            myTimerAutoReload->stop();
             break;
 
         case LoggerClientWidget::CLIPBOARD:
@@ -448,10 +490,13 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
 
             buttonOpenFile->setChecked(false);
             buttonOpenFile->setText(tr("Open &log file"));
+            buttonReloadFile->setVisible(false);
+            checkBoxAutoReload->setVisible(false);
+            myTimerAutoReload->stop();
             break;
 
         case LoggerClientWidget::FILE:
-            this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + tr("File: ") + szText);
+            this->setWindowTitle(szWindowTitle + QStringLiteral(" - ") + tr("File: ") + szOpenedLogFile);
 
             myServerConnectionWidget->setEnabled(false);
             myServerConnectionWidget->setMode(NetworkConnectionWidget::IDLE);
@@ -459,7 +504,14 @@ void LoggerClientWidget::setLogWidgetMode(const LogMode eMode, const QString &sz
             myLoggerPatternWidget->setEnabled(true);
 
             buttonOpenFile->setChecked(true);
-            buttonOpenFile->setText("C&lose " + szText);
+            buttonOpenFile->setText("C&lose " + QFileInfo(szOpenedLogFile).fileName());
+            buttonReloadFile->setVisible(true);
+            checkBoxAutoReload->setVisible(true);
+
+            if (checkBoxAutoReload->isChecked()) {
+                myTimerAutoReload->start();
+            }
+
             break;
 
         case LoggerClientWidget::SERVER_CONNECTING: {
@@ -567,8 +619,7 @@ void LoggerClientWidget::updateButtonsRowCountDependent(LogMode eNewMode)
         switch (eNewMode) {
             case LoggerClientWidget::EMPTY:
             case LoggerClientWidget::COUNT_LOG_MODE:
-                // Should not happen if rowCount > 0, but disable clear just in case
-                pushButtonClearTable->setEnabled(false);
+                pushButtonClearTable->setEnabled(true); //disconnected, but table has rows
                 break;
 
             case LoggerClientWidget::CLIPBOARD:
@@ -720,7 +771,7 @@ void LoggerClientWidget::savedSelectedIndex()
 void LoggerClientWidget::buttonConnectToServerToggled(bool bButtonState)
 {
     if (bButtonState == true) {
-        myChannelSocketClient->setNeverDies(true); //TODO get this option from an UI checkbox
+        myChannelSocketClient->setAutoReconnect(true); //TODO get this option from an UI checkbox
         const bool bConnectionResult = myChannelSocketClient->connect(myServerConnectionWidget->getIp(), myServerConnectionWidget->getPort());
 
         if (bConnectionResult == true) {
@@ -767,14 +818,76 @@ void LoggerClientWidget::buttonOpenFileClicked(bool bButtonState)
 
 void LoggerClientWidget::buttonOpenFileResult(const QString &szFilename)
 {
+    openLogFile(szFilename);
+}
+
+void LoggerClientWidget::openLogFile(const QString &szFilename)
+{
     Q_EMIT parseFile(szFilename);
+}
+
+void LoggerClientWidget::setupCommandLineArgs(const QString &szIp, const QString &szPort, const QString &szPattern)
+{
+    if (szPattern.isEmpty() == false) {
+        myLoggerPatternWidget->setPattern(szPattern);
+        myLoggerPatternWidget->setPatternName(tr("Custom Pattern"));
+    }
+
+    if (szIp.isEmpty() == false) {
+        myServerConnectionWidget->setIp(szIp);
+    }
+
+    if (szPort.isEmpty() == false) {
+        myServerConnectionWidget->setPort(szPort);
+    }
+
+    if (szIp.isEmpty() == false && szPort.isEmpty() == false) {
+        myServerConnectionWidget->setName(tr("Custom Server"));
+        buttonConnectToServerToggled(true);
+    }
+}
+
+void LoggerClientWidget::buttonReloadFileClicked()
+{
+    if (szOpenedLogFile.isEmpty() == false) {
+        //If scroll at bottom, we want to keep it at bottom after reload
+        if (myTableView->verticalScrollBar()->value() == myTableView->verticalScrollBar()->maximum()
+            || myTableView->verticalScrollBar()->isVisible() == false) {
+            bIsAtBottom = true;
+            mySavedModelIndex = QPersistentModelIndex();
+
+        } else {
+            bIsAtBottom = false;
+            savedSelectedIndex();
+        }
+
+        Q_EMIT parseFile(szOpenedLogFile);
+    }
 }
 
 void LoggerClientWidget::fileParsingResult(const int nResult, const QString &szFilename)
 {
     if (nResult == GlobalConstants::SUCCESS) {
-        setLogWidgetMode(FILE, szFilename, true);
+        szOpenedLogFile = szFilename;
+        setLogWidgetMode(FILE, true);
         resizeColumnsIfNeeded(true);
+
+        if (mySavedModelIndex.isValid()) {
+            QModelIndex newProxyIndex = myProxyModel->mapFromSource(mySavedModelIndex);
+
+            if (newProxyIndex.isValid()) {
+                QApplication::processEvents(QEventLoop::ExcludeUserInputEvents); // update the tableview before scrolling
+                myTableView->setCurrentIndex(newProxyIndex);
+                myTableView->scrollTo(newProxyIndex, QAbstractItemView::EnsureVisible);
+            }
+
+            // Clear the preserved index after attempting restoration
+            mySavedModelIndex = QPersistentModelIndex();
+
+        } else if (bIsAtBottom == true) {
+            QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+            myTableView->scrollToBottom();
+        }
 
     } else {
         setLogWidgetMode(EMPTY);
@@ -986,6 +1099,7 @@ void LoggerClientWidget::buttonClickedSaveToFile(QAction *myAction)
         myFileDialog->setFileMode(QFileDialog::AnyFile);
 
         myFileDialog->setNameFilters(FileUtils::getFileTypeFilterLog());
+        myFileDialog->selectFile("LOG_" + QDateTime::currentDateTime().toString("yyyyMMdd_HHmmss"));
 
         myFileDialog->open(this, SLOT(buttonSaveToFileResult(QString)));
 
@@ -1075,7 +1189,7 @@ void LoggerClientWidget::searchTextChanged(const QString &szSearchText, QRegular
 //    QStringList matchRows;
 
 //    for (const QModelIndex &myIndex : myMatches) {
-////        QTableWidgetItem *item = table->item(myIndex.row(), myIndex.column());
+//        //  QTableWidgetItem *item = table->item(myIndex.row(), myIndex.column());
 //        matchRows << QString::number(myIndex.row());
 //    }
 
@@ -1161,6 +1275,13 @@ void LoggerClientWidget::rowHeightBiasChanged(int nValue)
     myTableView->verticalHeader()->setMaximumSectionSize(myTableView->verticalHeader()->minimumSectionSize());
 }
 
+void LoggerClientWidget::fileReloadIntervalChanged(const int nValue)
+{
+    if (myTimerAutoReload->isActive()) {
+        myTimerAutoReload->start(nValue * 1000);
+    }
+}
+
 void LoggerClientWidget::dragEnterEvent(QDragEnterEvent *myDragEvent)
 {
     if (myDragEvent->mimeData()->hasText()) {
@@ -1193,13 +1314,13 @@ void LoggerClientWidget::dropEvent(QDropEvent *myDropEvent)
 
 void LoggerClientWidget::resizeEvent(QResizeEvent *event)
 {
-    saveWindowPosition();
+    myTimerDebouncing->start();
     QWidget::resizeEvent(event);
 }
 
 void LoggerClientWidget::moveEvent(QMoveEvent *event)
 {
-    saveWindowPosition();
+    myTimerDebouncing->start();
     QWidget::moveEvent(event);
 }
 

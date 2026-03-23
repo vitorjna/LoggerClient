@@ -22,8 +22,6 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
     set(TARGET_WINDOWS 1)
     message("Building for Windows")
 
-    add_definitions(-DBOOST_ASIO_DISABLE_IOCP)
-
 elseif (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     set(TARGET_LINUX 1)
     message("Building for Linux")
@@ -73,6 +71,7 @@ set(CMAKE_AUTOUIC ON)
 file(GLOB_RECURSE SRC_FILES
     ${PROJECT_SOURCE_DIR}/*.cpp
     ${PROJECT_SOURCE_DIR}/*.h
+    ${PROJECT_SOURCE_DIR}/*.rc
     ${PROJECT_SOURCE_DIR}/../resources/*.qrc
     )
 
@@ -205,4 +204,11 @@ endif()
 
 file(COPY ${PROJECT_SOURCE_DIR}/../resources/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_BINARY_DIR}/LoggerClient.exe
+        ${CMAKE_CURRENT_BINARY_DIR}/../LoggerClient/LoggerClient.exe
+        COMMENT "Copying LoggerClient.exe to target directory..."
+    )
+endif()

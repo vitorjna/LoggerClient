@@ -47,6 +47,7 @@ public:
     ///Other Options
     static const QString    SETTINGS_FORMAT_EXPORTED_LOGS;
     static const QString    SETTINGS_LOGGER_SERVER_ADDRESSES;
+    static const QString    SETTINGS_FILE_RELOAD_INTERVAL;
     static const QString    SETTINGS_KEYWORDS_HIGHLIGHT;
 
     static const QString    FILE_EXTENSION_CPP;
