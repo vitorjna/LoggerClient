@@ -1,0 +1,59 @@
+name: Build and Release LoggerClient
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        ref: main
+        submodules: recursive
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.9.0'
+        # host: 'windows'
+        # target: 'desktop'
+        arch: 'win64_msvc2022_64'
+        cache: 'true'
+
+    - name: Setup Developer Command Prompt for MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Configure CMake
+      run: cmake -S src -B build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build LoggerClient
+      run: cmake --build build --config Release
+
+    - name: Deploy Qt Dependencies
+      run: |
+        mkdir package
+        copy build/LoggerClient.exe package/
+        copy resources/* package/
+        windeployqt --release package/LoggerClient.exe
+      continue-on-error: false
+
+    - name: Get Current Date
+      id: date
+      run: echo "date=$(Get-Date -Format 'yyyyMMdd')" >> $env:GITHUB_OUTPUT
+
+    - name: Create 7z Package
+      run: 7z a -t7z -mx=9 LoggerClient-Release-${{ steps.date.outputs.date }}.7z ./package/*
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: ${{ steps.date.outputs.date }}
+        name: ${{ steps.date.outputs.date }}
+        draft: false
+        prerelease: false
+        files: LoggerClient-Release-${{ steps.date.outputs.date }}.7z
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
