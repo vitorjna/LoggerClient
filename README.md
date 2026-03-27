@@ -2,6 +2,17 @@
 
 A C++ application built with Qt6 and CMake to connect to a logger server and display log messages.
 
+## Table of Contents
+
+- [Description](#description)
+- [Features](#features)
+- [Technologies Used](#technologies-used)
+- [Prerequisites](#prerequisites)
+- [Building](#building)
+- [Running](#running)
+- [Updating](#updating)
+- [Contributing](#contributing)
+
 ## Description
 
 LoggerClient is a cross-platform desktop application designed to receive, display, and manage log messages from a compatible logger server. It provides a user-friendly graphical interface for real-time log monitoring, filtering, and analysis.
@@ -62,6 +73,15 @@ After building, the executable will be located in the build directory (e.g., `bu
 # Example for Linux/macOS
 ./build/LoggerClient
 ```
+
+## Updating
+
+To update LoggerClient to a newer version while preserving your preferences:
+
+1. Navigate to your current LoggerClient installation directory.
+2. Identify the `.ini` configuration file. **Do not delete this file**, as it contains all your saved settings and configurations.
+3. Safely remove all other files and folders from the installation directory.
+4. Extract and copy the contents of the new release into the directory.
 
 ## Contributing
 
