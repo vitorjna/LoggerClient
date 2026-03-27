@@ -36,7 +36,8 @@ jobs:
       run: |
         mkdir package
         copy build/LoggerClient.exe package/
-        copy resources/* package/
+        xcopy resources\*.qss package\ /s /i /y
+        xcopy resources\*.png package\ /s /i /y
         windeployqt --release package/LoggerClient.exe
       continue-on-error: false
 
