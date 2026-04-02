@@ -691,6 +691,16 @@ void LoggerClientWidget::saveTableToFile(const QString &szFilename)
 
     QFile myFile(szSavedLogFile);
 
+    if (myFile.exists()) {
+        QMessageBox::StandardButton eReply = QMessageBox::question(this, tr("Replace File?"),
+                                                                   tr("The file %1 already exists.\nDo you want to replace it?").arg(QFileInfo(szSavedLogFile).fileName()),
+                                                                   QMessageBox::Yes | QMessageBox::No);
+
+        if (eReply == QMessageBox::No) {
+            return;
+        }
+    }
+
     if (myFile.open(QFile::WriteOnly | QFile::Truncate) == true) {
 
         QTextStream myTextStream(&myFile);
@@ -888,6 +898,8 @@ void LoggerClientWidget::fileParsingResult(const int nResult, const QString &szF
             QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
             myTableView->scrollToBottom();
         }
+
+        ToastNotificationWidget::hideMessage();
 
     } else {
         setLogWidgetMode(EMPTY);

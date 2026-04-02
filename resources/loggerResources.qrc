@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/icons">
-        <file>themes/icons/appIcon.svg</file>
+        <file>themes/icons/biomass.svg</file>
     </qresource>
 </RCC>

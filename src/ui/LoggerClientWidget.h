@@ -12,6 +12,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMessageBox>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QScrollBar>

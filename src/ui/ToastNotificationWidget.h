@@ -22,6 +22,7 @@ public:
     };
 
     static void showMessage(QWidget *myContainer, const QString &szMessage, const NotificationType eNotifType, const int nTimeoutMs);
+    static void hideMessage();
 
     void setStyleSheet(const NotificationType eNotifType);
     void setStyleSheet(const QString &szStyleSheet);
@@ -31,6 +32,8 @@ private:
     static const int nWidgetHeight  = 64;
 
     static QTimer *myTimer;
+
+    static ToastNotificationWidget *myWidget;
 
     explicit ToastNotificationWidget(const NotificationType eNotifType, QWidget *parent = nullptr);
     ~ToastNotificationWidget() override;

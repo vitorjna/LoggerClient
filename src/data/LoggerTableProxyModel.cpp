@@ -631,6 +631,8 @@ void LoggerTableProxyModel::clear()
 
 void LoggerTableProxyModel::parseFile(const QString &szFilename)
 {
+    Q_EMIT showNotification(tr("Parsing file"), ToastNotificationWidget::INFO, 10000);
+
     if (FileUtils::isFileTypeLog(szFilename) == false) {
         Q_EMIT fileParsingResult(GlobalConstants::ERROR);
         return;
@@ -659,7 +661,6 @@ void LoggerTableProxyModel::parseFile(const QString &szFilename)
     } else {
         Q_EMIT fileParsingResult(GlobalConstants::ERROR);
     }
-
 }
 
 void LoggerTableProxyModel::parseClipboard()

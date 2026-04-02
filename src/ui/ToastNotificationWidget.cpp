@@ -3,16 +3,17 @@
 const int   ToastNotificationWidget::nWidgetWidth;
 const int   ToastNotificationWidget::nWidgetHeight;
 QTimer      *ToastNotificationWidget::myTimer = new QTimer();
+ToastNotificationWidget *ToastNotificationWidget::myWidget{};
 
 void ToastNotificationWidget::showMessage(QWidget *myContainer, const QString &szMessage, const NotificationType eNotifType, const int nTimeoutMs)
 {
-    ToastNotificationWidget *myWidget = new ToastNotificationWidget(eNotifType, myContainer);
+    myWidget = new ToastNotificationWidget(eNotifType, myContainer);
 
     myWidget->labelMessage->setText(szMessage);
     myWidget->adjustSize();
 
     if (myContainer == nullptr) { //TODO toasts don't work if the container is not visible yet. They're also not mapping correctly to the desktop as a fallback
-        myWidget->move(myContainer->mapToGlobal(QApplication::primaryScreen()->geometry().center()));
+        myWidget->move(myWidget->mapToGlobal(QApplication::primaryScreen()->geometry().center()));
 
     } else {
         myWidget->move(myContainer->mapToGlobal(myContainer->rect().center()) - myWidget->rect().center());
@@ -31,6 +32,13 @@ void ToastNotificationWidget::showMessage(QWidget *myContainer, const QString &s
         QObject::connect(myTimer, SIGNAL(timeout()), myWidget, SLOT(close()));
 
         myTimer->start(nTimeoutMs);
+    }
+}
+
+void ToastNotificationWidget::hideMessage()
+{
+    if (myWidget != nullptr) {
+        myWidget->hide();
     }
 }
 

@@ -83,6 +83,12 @@ int main(int argc, char **argv)
 
     LoggerClientWidget myLoggerClientWidget;
 
+    if (szIp.isEmpty() == false || szPort.isEmpty() == false || szPattern.isEmpty() == false) {
+        myLoggerClientWidget.setupCommandLineArgs(szIp, szPort, szPattern);
+    }
+
+    myLoggerClientWidget.show();
+
     if (szFileName.isEmpty() == false) {
         std::cout << "Opening file: " << szFileName.toLocal8Bit().constData() << std::endl;
         myLoggerClientWidget.openLogFile(szFileName);
@@ -90,12 +96,6 @@ int main(int argc, char **argv)
         szIp.clear();
         szPort.clear();
     }
-
-    if (szIp.isEmpty() == false || szPort.isEmpty() == false || szPattern.isEmpty() == false) {
-        myLoggerClientWidget.setupCommandLineArgs(szIp, szPort, szPattern);
-    }
-
-    myLoggerClientWidget.show();
 
     return loggerClient.exec();
 }
